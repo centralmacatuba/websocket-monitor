@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import WebSocket from 'ws'
 
 /**
@@ -29,7 +30,7 @@ export function normalizeWebSocketUrl(value) {
 
 /**
  * Open a real WebSocket connection, verify the handshake, send a protocol-level
- * Ping frame, and require the server's Pong response.
+ * Ping frame, and require the matching Pong response.
  *
  * This validates the WebSocket transport and control-frame handling. It does not
  * perform an application-specific Trystero or EaglerCraft game-protocol exchange.
@@ -49,12 +50,7 @@ export function checkWebSocket(value, {
     let connectTimer
     let pongTimer
     let closeTimer
-
-    const socket = new WebSocketClass(url, {
-      handshakeTimeout: connectTimeoutMs,
-      perMessageDeflate: false,
-      followRedirects: false,
-    })
+    const pingPayload = randomBytes(16)
 
     const cleanupTimers = () => {
       clearTimeout(connectTimer)
@@ -70,29 +66,22 @@ export function checkWebSocket(value, {
       reject(error instanceof Error ? error : new Error(String(error)))
     }
 
+    const socket = new WebSocketClass(url, {
+      handshakeTimeout: connectTimeoutMs,
+      perMessageDeflate: false,
+      followRedirects: false,
+    })
+
     connectTimer = setTimeout(() => {
       fail(new Error(`WebSocket handshake timed out after ${connectTimeoutMs} ms`))
     }, connectTimeoutMs + 250)
 
-    socket.once('open', () => {
-      opened = true
-      clearTimeout(connectTimer)
+    const onPong = (data) => {
+      if (settled || !Buffer.isBuffer(data) || !data.equals(pingPayload)) return
 
-      pongTimer = setTimeout(() => {
-        fail(new Error(`WebSocket connected but did not answer Ping within ${pongTimeoutMs} ms`))
-      }, pongTimeoutMs)
-
-      try {
-        socket.ping()
-      } catch (error) {
-        fail(new Error(`Unable to send WebSocket Ping: ${error.message}`))
-      }
-    })
-
-    socket.once('pong', () => {
-      if (settled) return
       settled = true
       cleanupTimers()
+      socket.off('pong', onPong)
 
       socket.once('close', () => clearTimeout(closeTimer))
       closeTimer = setTimeout(() => socket.terminate(), closeTimeoutMs)
@@ -110,6 +99,23 @@ export function checkWebSocket(value, {
         pong: true,
         elapsedMs: Date.now() - startedAt,
       })
+    }
+
+    socket.on('pong', onPong)
+
+    socket.once('open', () => {
+      opened = true
+      clearTimeout(connectTimer)
+
+      pongTimer = setTimeout(() => {
+        fail(new Error(`WebSocket connected but did not answer Ping within ${pongTimeoutMs} ms`))
+      }, pongTimeoutMs)
+
+      try {
+        socket.ping(pingPayload)
+      } catch (error) {
+        fail(new Error(`Unable to send WebSocket Ping: ${error.message}`))
+      }
     })
 
     socket.once('unexpected-response', (_request, response) => {
