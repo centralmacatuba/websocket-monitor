@@ -1,0 +1,19 @@
+{
+  "name": "@centralmacatuba/websocket-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.12.1",
+  "description": "WebSocket availability monitor for Central Macatuba relays",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "monitor": "node src/monitor.js",
+    "check": "node --check src/check-websocket.js && node --check src/monitor.js && node --check tests/check-websocket.test.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}
