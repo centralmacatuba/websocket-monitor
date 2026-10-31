@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
+    branches:
+      - principal
   pull_request:
+    branches:
+      - principal
 
 permissions:
   contents: read
