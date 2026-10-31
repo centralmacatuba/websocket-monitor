@@ -2,7 +2,6 @@
   "name": "@centralmacatuba/websocket-monitor",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@12.12.1",
   "description": "WebSocket availability monitor for Central Macatuba relays",
   "type": "module",
   "engines": {
