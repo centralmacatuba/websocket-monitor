@@ -6,6 +6,10 @@ updates:
       interval: weekly
     labels:
       - dependencies
+    assignees:
+      - centralmacatuba
+      - desenvolvedor-ee
+      - desenvolvedoree-bot
 
   - package-ecosystem: github-actions
     directory: /
@@ -13,3 +17,7 @@ updates:
       interval: weekly
     labels:
       - github-actions
+    assignees:
+      - centralmacatuba
+      - desenvolvedor-ee
+      - desenvolvedoree-bot
