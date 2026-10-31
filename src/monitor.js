@@ -22,11 +22,6 @@ function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms))
 }
 
-function safeEndpoint(value) {
-  const url = new URL(value)
-  return `${url.protocol}//${url.host}${url.pathname}`
-}
-
 /**
  * Retry a target to tolerate Render Free cold starts. A successful check requires
  * both the WebSocket opening handshake and a Ping/Pong control-frame exchange.
@@ -44,7 +39,6 @@ export async function monitorTarget({
   log = console,
 } = {}) {
   const normalizedUrl = normalizeWebSocketUrl(url)
-  const endpoint = safeEndpoint(normalizedUrl)
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
@@ -54,7 +48,7 @@ export async function monitorTarget({
         closeTimeoutMs,
       })
 
-      log.info(`[UP] ${name}: WebSocket handshake + Ping/Pong OK (${result.elapsedMs} ms; tentativa ${attempt}/${maxAttempts}) — ${endpoint}`)
+      log.info(`[UP] ${name}: WebSocket handshake + Ping/Pong OK (${result.elapsedMs} ms; tentativa ${attempt}/${maxAttempts})`)
       return { ok: true, name, attempts: attempt, ...result }
     } catch (error) {
       log.warn(`[DOWN] ${name}: tentativa ${attempt}/${maxAttempts} — ${error.message}`)
@@ -65,7 +59,7 @@ export async function monitorTarget({
     }
   }
 
-  log.error(`[FAIL] ${name}: indisponível após ${maxAttempts} tentativas — ${endpoint}`)
+  log.error(`[FAIL] ${name}: indisponível após ${maxAttempts} tentativas`)
   return { ok: false, name, attempts: maxAttempts }
 }
 
@@ -73,13 +67,12 @@ export async function runMonitor(env = process.env, options = {}) {
   const targets = TARGETS.map(({ name, secret }) => ({
     name,
     url: env[secret],
-    secret,
   }))
 
   const missing = targets.filter((target) => !target.url)
   if (missing.length) {
     for (const target of missing) {
-      console.error(`[CONFIG] Secret ausente: ${target.secret}`)
+      console.error(`[CONFIG] Secret ausente para: ${target.name}`)
     }
     return 1
   }
