@@ -18,13 +18,13 @@ Os dois relays recebem conexões WebSocket na raiz:
 - **Trystero:** o servidor usa `@trystero-p2p/ws-relay` e aceita WebSocket em `/`. O endpoint HTTP `/health` existe, mas não substitui o teste do transporte WebSocket.
 - **EaglerCraft Relay:** o relay Java usa a raiz `/` para WebSocket. A resposta HTTP informativa da raiz não é um endpoint de saúde; por isso, o monitor não faz uma requisição HTTP convencional.
 
-Cada verificação abre uma conexão real, confirma o handshake HTTP 101, envia um frame WebSocket Ping, aguarda o Pong automático do servidor e fecha a conexão com o código 1000. Não envia mensagens de jogo, códigos de sala ou dados de sinalização.
+Cada verificação abre uma conexão real, confirma o handshake HTTP 101, envia um frame WebSocket Ping com um identificador aleatório, aguarda um Pong com os mesmos dados e fecha a conexão com o código 1000. Pongs espontâneos ou que não correspondam ao Ping enviado são ignorados. Não envia mensagens de jogo, códigos de sala ou dados de sinalização.
 
 > O teste confirma que o endpoint aceita WebSocket e responde aos frames de controle. Ele não substitui um teste funcional completo com clientes MWC/EaglerCraft nem confirma que a troca de mensagens específica da aplicação está funcionando.
 
 ## Configuração no GitHub
 
-Depois de integrar esta branch à branch padrão do repositório, configure os seguintes **Repository secrets** em **Settings → Secrets and variables → Actions**:
+Após integrar esta branch à branch padrão do repositório, configure os seguintes **Repository secrets** em **Settings → Secrets and variables → Actions**:
 
 | Secret | Conteúdo |
 |---|---|
@@ -44,7 +44,7 @@ Os secrets não são necessários para executar a suíte de testes. A execução
 
 ## Execução automática
 
-A workflow `.github/workflows/websocket-monitor.yml` agenda uma verificação a cada cinco minutos e também permite execução manual em **Actions → WebSocket Relay Monitor → Run workflow**.
+O workflow `.github/workflows/websocket-monitor.yml` agenda uma verificação a cada cinco minutos e também permite execução manual em **Actions → WebSocket Relay Monitor → Run workflow**.
 
 Quando um serviço não responde, o monitor tenta novamente até oito vezes, aguardando dez segundos entre tentativas. Isso dá tempo para o cold start do Render Free (que pode levar aproximadamente um minuto). Os dois relays são verificados em paralelo; a falha de um não impede que o outro seja testado.
 
@@ -52,7 +52,7 @@ O GitHub Actions usa agendamentos de melhor esforço: execuções podem atrasar,
 
 ### Relação com o Render Free
 
-O Render informa que um Web Service Free entra em repouso depois de 15 minutos sem tráfego de entrada e volta a iniciar quando recebe uma requisição HTTP ou uma nova conexão WebSocket. Esta workflow abre novas conexões WebSocket, portanto pode acordar os relays e, enquanto as verificações chegam regularmente, gerar tráfego de entrada.
+O Render informa que um Web Service Free entra em repouso depois de 15 minutos sem tráfego de entrada e volta a iniciar quando recebe uma requisição HTTP ou uma nova conexão WebSocket. Esse workflow abre novas conexões WebSocket; portanto, pode acordar os relays e, enquanto as verificações chegam regularmente, gerar tráfego de entrada.
 
 Isso **não remove as limitações do Render Free**:
 
@@ -128,8 +128,10 @@ pnpm-lock.yaml
 ## Segurança e privacidade
 
 - Os endereços dos serviços são armazenados como GitHub Actions secrets.
-- O monitor não imprime a URL completa, query strings ou credenciais nos logs.
+- O monitor não imprime as URLs, query strings ou credenciais nos logs.
 - O workflow possui somente permissão `contents: read`.
+- O checkout não persiste o token do GitHub no repositório local.
+- As ações de terceiros são fixadas em SHAs completos e imutáveis.
 - Não são enviados dados de jogo, mensagens Trystero, códigos de mundo ou credenciais de TURN.
 - As conexões são encerradas após o Ping/Pong.
 
