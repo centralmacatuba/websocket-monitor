@@ -56,6 +56,40 @@ test('completes the WebSocket handshake and Ping/Pong exchange', async () => {
   assert.ok(result.elapsedMs >= 0)
 })
 
+test('ignores unsolicited Pong frames that do not match its Ping', async () => {
+  const unsolicitedServer = createServer()
+  const unsolicitedWebSocketServer = new WebSocketServer({
+    noServer: true,
+    autoPong: false,
+  })
+
+  unsolicitedServer.on('upgrade', (request, socket, head) => {
+    unsolicitedWebSocketServer.handleUpgrade(request, socket, head, (websocket) => {
+      unsolicitedWebSocketServer.emit('connection', websocket, request)
+    })
+  })
+
+  unsolicitedWebSocketServer.on('connection', (websocket) => {
+    websocket.pong(Buffer.from('unsolicited-pong'))
+  })
+
+  await new Promise((resolve) => unsolicitedServer.listen(0, '127.0.0.1', resolve))
+  const address = unsolicitedServer.address()
+
+  try {
+    await assert.rejects(
+      checkWebSocket(`ws://127.0.0.1:${address.port}/`, {
+        connectTimeoutMs: 2_000,
+        pongTimeoutMs: 100,
+      }),
+      /did not answer Ping/,
+    )
+  } finally {
+    await new Promise((resolve) => unsolicitedWebSocketServer.close(resolve))
+    await new Promise((resolve) => unsolicitedServer.close(resolve))
+  }
+})
+
 test('reports a rejected WebSocket handshake with the HTTP status', async () => {
   const httpServer = createServer((_request, response) => {
     response.writeHead(426, { connection: 'close' })
