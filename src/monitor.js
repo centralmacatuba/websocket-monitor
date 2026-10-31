@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { checkWebSocket, normalizeWebSocketUrl } from './check-websocket.js'
 
 const TARGETS = [
@@ -17,7 +19,7 @@ function positiveInteger(value, fallback) {
 }
 
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms))
 }
 
 function safeEndpoint(value) {
@@ -82,9 +84,14 @@ export async function runMonitor(env = process.env, options = {}) {
     return 1
   }
 
-  const results = await Promise.all(
-    targets.map(({ name, url }) => monitorTarget({ name, url }, options)),
-  )
+  const results = await Promise.all(targets.map(async ({ name, url }) => {
+    try {
+      return await monitorTarget({ name, url }, options)
+    } catch (error) {
+      console.error(`[CONFIG] ${name}: ${error.message}`)
+      return { ok: false, name, attempts: 0 }
+    }
+  }))
 
   const successful = results.filter((result) => result.ok).length
   console.info(`\nResultado: ${successful}/${results.length} relays WebSocket disponíveis.`)
@@ -92,7 +99,7 @@ export async function runMonitor(env = process.env, options = {}) {
   return successful === results.length ? 0 : 1
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const options = {
     maxAttempts: positiveInteger(process.env.WS_MAX_ATTEMPTS, 8),
     retryDelayMs: positiveInteger(process.env.WS_RETRY_DELAY_MS, 10_000),
