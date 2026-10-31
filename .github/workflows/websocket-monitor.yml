@@ -1,0 +1,50 @@
+name: WebSocket Relay Monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: websocket-relay-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Check relay WebSockets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 12.12.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check WebSocket relays
+        env:
+          MCRAFT_TRYSTERO_WS_URL: ${{ secrets.MCRAFT_TRYSTERO_WS_URL }}
+          EAGLERCRAFT_RELAY_WS_URL: ${{ secrets.EAGLERCRAFT_RELAY_WS_URL }}
+          WS_CONNECT_TIMEOUT_MS: "15000"
+          WS_PONG_TIMEOUT_MS: "5000"
+          WS_MAX_ATTEMPTS: "8"
+          WS_RETRY_DELAY_MS: "10000"
+          WS_CLOSE_TIMEOUT_MS: "1000"
+        run: pnpm monitor
