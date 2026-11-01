@@ -3,7 +3,9 @@ import WebSocket from 'ws'
 
 /**
  * Validate and normalize a WebSocket endpoint without exposing URL credentials.
- * Only ws:// and wss:// endpoints are accepted.
+ * Returns the normalized URL. Only ws:// and wss:// endpoints without
+ * credentials or a fragment are accepted; missing, invalid, or unsupported
+ * URLs throw an Error.
  */
 export function normalizeWebSocketUrl(value) {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -34,6 +36,13 @@ export function normalizeWebSocketUrl(value) {
  *
  * This validates the WebSocket transport and control-frame handling. It does not
  * perform an application-specific Trystero or EaglerCraft game-protocol exchange.
+ * Timeout options are in milliseconds: connectTimeoutMs limits the handshake,
+ * pongTimeoutMs limits the wait for a matching Pong, and closeTimeoutMs limits
+ * the wait for the closing handshake. WebSocketClass can supply a socket class.
+ * Resolves with ok, handshake, and pong set to true and elapsedMs measured through
+ * the Pong. Closing continues after resolution and may require termination.
+ * Invalid URLs throw synchronously; connection, handshake, Ping, and Pong
+ * failures reject the promise. Socket construction errors also reject it.
  */
 export function checkWebSocket(value, {
   connectTimeoutMs = 15_000,
