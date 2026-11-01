@@ -25,6 +25,12 @@ function sleep(ms) {
 /**
  * Retry a target to tolerate Render Free cold starts. A successful check requires
  * both the WebSocket opening handshake and a Ping/Pong control-frame exchange.
+ * maxAttempts limits checks and retryDelayMs is the delay between them in
+ * milliseconds. The other timeout options are passed to the checker, which can
+ * be replaced with check; log receives the status messages.
+ * Returns the check result with the target name and attempt count on success,
+ * or { ok: false, name, attempts } after exhausting attempts. Checker errors are
+ * retried; an invalid URL rejects before any check is attempted.
  */
 export async function monitorTarget({
   name,
@@ -63,6 +69,13 @@ export async function monitorTarget({
   return { ok: false, name, attempts: maxAttempts }
 }
 
+/**
+ * Check the configured Mcraft and EaglerCraft relays concurrently, passing
+ * options to monitorTarget. env supplies MCRAFT_TRYSTERO_WS_URL and
+ * EAGLERCRAFT_RELAY_WS_URL; if either is missing, neither relay is checked.
+ * Returns 0 when both checks succeed, otherwise 1. Per-target errors are
+ * reported as failures, and a summary is printed when both URLs are present.
+ */
 export async function runMonitor(env = process.env, options = {}) {
   const targets = TARGETS.map(({ name, secret }) => ({
     name,
