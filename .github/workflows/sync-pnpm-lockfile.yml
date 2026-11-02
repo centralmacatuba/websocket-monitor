@@ -1,0 +1,59 @@
+name: Sync pnpm lockfile
+
+on:
+  # Manual execution only. Automatic triggers are intentionally disabled.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lockfile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    # Keep the default branch protected from direct workflow commits.
+    if: github.ref != 'refs/heads/principal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.12.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # A full install creates pnpm-lock.yaml when it is missing and
+      # synchronizes it when it already exists.
+      - name: Regenerate lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      # Validate with the exact frozen mode used by CI before committing.
+      - name: Validate frozen lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Commit and push lockfile when changed or missing from Git
+        run: |
+          if [ -z "$(git status --porcelain -- pnpm-lock.yaml)" ]; then
+            echo "Lockfile is already synchronized and passes frozen validation."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- pnpm-lock.yaml
+          git commit -m "chore: sync pnpm lockfile"
+          git push
