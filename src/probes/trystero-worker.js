@@ -12,6 +12,7 @@ async function main() {
     identity: 'none',
     maxUsers: 2,
     rtcPolyfill: RTCPeerConnection,
+    rtcConfig: { iceServers: [], iceUseDefaultStunServer: false },
     relayConfig: { urls: [url], warnOnRelayFailure: false },
   }, roomId)
   const action = room.makeAction('cm-monitor-health')
