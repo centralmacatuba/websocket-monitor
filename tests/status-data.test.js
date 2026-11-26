@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { buildServiceSummary, calculateUptime, classifyService, makeBadgeSvg } from '../src/status-data.js'
 
 const now = Date.UTC(2026, 10, 25, 12)
-const config = { id: 'wisp', name: 'Wisp', expectedIntervalMinutes: 5, degradedLatencyMs: 2000 }
+const config = { id: 'eaglercraft-wisp', name: 'Wisp', expectedIntervalMinutes: 5, degradedLatencyMs: 2000 }
 
 test('calculates uptime from actual successful and failed checks', () => {
   const samples = [
@@ -25,7 +25,7 @@ test('does not invent uptime when there are no samples', () => {
 })
 
 test('excludes samples inside explicitly excluded maintenance windows', () => {
-  const maintenance = [{ service: 'wisp', startsAt: new Date(now - 2500).toISOString(), endsAt: new Date(now - 500).toISOString(), excludeFromUptime: true }]
+  const maintenance = [{ service: 'eaglercraft-wisp', startsAt: new Date(now - 2500).toISOString(), endsAt: new Date(now - 500).toISOString(), excludeFromUptime: true }]
   const samples = [[now - 3000, 1, 100, 1], [now - 2000, 0, 500, 8], [now - 1000, 0, 500, 8]]
   const result = calculateUptime(samples, now, 60_000, maintenance)
   assert.equal(result.checks, 1)
