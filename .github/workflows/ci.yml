@@ -44,5 +44,10 @@ jobs:
       - name: Check syntax
         run: pnpm check
 
-      - name: Run tests
+      - name: Run unit tests
         run: pnpm test
+
+      - name: Run real PeerJS integration test
+        env:
+          RUN_PEERJS_INTEGRATION: "1"
+        run: pnpm test:peerjs-integration
