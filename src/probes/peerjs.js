@@ -34,14 +34,14 @@ function toBuffer(value) {
 export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
   const startedAt = Date.now()
   const options = parsePeerServerUrl(url)
-  const { Peer } = await import('peerjs')
-
-  // PeerJS is browser-first. werift provides the browser-compatible WebRTC
-  // primitives needed to execute the same Peer / connect / raw API in Node.
+  // PeerJS is browser-first. werift provides browser-compatible WebRTC
+  // primitives for the same Peer / connect / raw API in Node. Set globals
+  // before importing PeerJS because its feature detection runs at module load.
   globalThis.window ??= globalThis
   globalThis.RTCPeerConnection ??= RTCPeerConnection
   globalThis.RTCSessionDescription ??= RTCSessionDescription
   globalThis.RTCIceCandidate ??= RTCIceCandidate
+  const { Peer } = await import('peerjs')
 
   const peerOptions = { ...options, debug: 0, config: { iceServers: [] } }
   const receiver = new Peer(undefined, peerOptions)
