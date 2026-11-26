@@ -1,5 +1,4 @@
 import { randomBytes } from 'node:crypto'
-import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate } from 'werift'
 
 function withTimeout(promise, timeoutMs, message) {
   let timer
@@ -17,7 +16,7 @@ function parsePeerServerUrl(value) {
   return {
     host: url.hostname,
     port: Number(url.port) || (['https:', 'wss:'].includes(url.protocol) ? 443 : 80),
-    path: url.pathname.replace(/\/+$/, '') || '/peerjs',
+    path: url.pathname.replace(/\\/+$/, '') || '/peerjs',
     secure: ['https:', 'wss:'].includes(url.protocol),
     key: url.searchParams.get('key') || 'peerjs',
   }
@@ -34,21 +33,23 @@ function toBuffer(value) {
 export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
   const startedAt = Date.now()
   const options = parsePeerServerUrl(url)
-  // PeerJS is browser-first. werift provides browser-compatible WebRTC
-  // primitives for the same Peer / connect / raw API in Node. Set globals
-  // before importing PeerJS because its feature detection runs at module load.
-  globalThis.window ??= globalThis
-  globalThis.RTCPeerConnection ??= RTCPeerConnection
-  globalThis.RTCSessionDescription ??= RTCSessionDescription
-  globalThis.RTCIceCandidate ??= RTCIceCandidate
-  const { Peer } = await import('peerjs')
 
-  const peerOptions = { ...options, debug: 0, config: { iceServers: [] } }
-  const receiver = new Peer(undefined, peerOptions)
-  const sender = new Peer(undefined, peerOptions)
+  // PeerJS is browser-first. Install werift's browser-compatible WebRTC globals
+  // before importing PeerJS so its runtime feature detection sees the API.
+  globalThis.window ??= globalThis
+  const { installPolyfill } = await import('werift/polyfill')
+  const uninstallPolyfill = installPolyfill({ mediaRegister: [] })
+  let receiver
+  let sender
   let incoming
+  let outgoing
 
   try {
+    const { Peer } = await import('peerjs')
+    const peerOptions = { ...options, debug: 0, config: { iceServers: [] } }
+    receiver = new Peer(undefined, peerOptions)
+    sender = new Peer(undefined, peerOptions)
+
     const [receiverId] = await withTimeout(Promise.all([
       new Promise((resolveId, rejectId) => {
         receiver.once('open', resolveId)
@@ -60,6 +61,10 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
       }),
     ]), timeoutMs, 'PeerJS registration timed out')
 
+    const nonce = randomBytes(16).toString('hex')
+    const payload = Buffer.from(`cm-monitor:${nonce}`)
+    const ack = Buffer.from(`cm-monitor-ack:${nonce}`)
+
     const received = new Promise((resolveData, rejectData) => {
       receiver.once('connection', (connection) => {
         incoming = connection
@@ -69,7 +74,7 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
             try {
               const bytes = toBuffer(data)
               if (!bytes.equals(payload)) return rejectData(new Error('PeerJS payload mismatch'))
-              connection.send(Buffer.from(ack))
+              connection.send(ack)
               resolveData()
             } catch (error) { rejectData(error) }
           })
@@ -77,10 +82,7 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
       })
     })
 
-    const nonce = randomBytes(16).toString('hex')
-    const payload = Buffer.from(`cm-monitor:${nonce}`)
-    const ack = Buffer.from(`cm-monitor-ack:${nonce}`)
-    const outgoing = sender.connect(receiverId, { serialization: 'raw', reliable: true })
+    outgoing = sender.connect(receiverId, { serialization: 'raw', reliable: true })
     await withTimeout(new Promise((resolveOpen, rejectOpen) => {
       outgoing.once('open', resolveOpen)
       outgoing.once('error', rejectOpen)
@@ -100,7 +102,9 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
     return { transport: true, protocol: true, registration: true, dataChannel: true, rawExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
     try { incoming?.close() } catch {}
-    try { sender.destroy() } catch {}
-    try { receiver.destroy() } catch {}
+    try { outgoing?.close() } catch {}
+    try { sender?.destroy() } catch {}
+    try { receiver?.destroy() } catch {}
+    uninstallPolyfill()
   }
 }
