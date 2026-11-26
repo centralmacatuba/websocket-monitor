@@ -11,10 +11,10 @@ function createLog() {
 }
 
 const urls = {
-  MCRAFT_TRYSTERO_WS_URL: 'wss://trystero.example.test/',
+  MCRAFT_P2P_WS_URL: 'wss://trystero.example.test/',
   EAGLERCRAFT_RELAY_WS_URL: 'wss://eagler.example.test/',
-  PEERJS_WS_URL: 'https://peerjs.example.test/peerjs',
-  WISP_WS_URL: 'wss://wisp.example.test/wisp/',
+  MCRAFT_P2P_PEERJS_WS_URL: 'https://peerjs.example.test/peerjs',
+  EAGLERCRAFT_WISP_WS_URL: 'wss://wisp.example.test/wisp/',
 }
 
 test('parses boolean and positive interval settings with safe fallbacks', () => {
@@ -46,11 +46,11 @@ test('global switch skips all services', async () => {
 test('per-service switches and URL presence define safe defaults', async () => {
   const { log } = createLog()
   const calls = []
-  const { WISP_WS_URL: _unusedWispUrl, ...withoutWispUrl } = urls
+  const { EAGLERCRAFT_WISP_WS_URL: _unusedWispUrl, ...withoutWispUrl } = urls
   const code = await runMonitor({
     ...withoutWispUrl,
-    PEERJS_MONITOR_ENABLED: 'false',
-    WISP_MONITOR_ENABLED: 'true',
+    MCRAFT_P2P_PEERJS_MONITOR_ENABLED: 'false',
+    EAGLERCRAFT_WISP_MONITOR_ENABLED: 'true',
   }, {
     log,
     force: true,
@@ -67,9 +67,9 @@ test('uses the global interval when a service interval is not set', async () => 
   const code = await runMonitor({
     ...urls,
     WS_MONITOR_INTERVAL_MINUTES: '10',
-    TRYSTERO_MONITOR_INTERVAL_MINUTES: '15',
-    PEERJS_MONITOR_ENABLED: 'false',
-    WISP_MONITOR_ENABLED: 'false',
+    MCRAFT_P2P_MONITOR_INTERVAL_MINUTES: '15',
+    MCRAFT_P2P_PEERJS_MONITOR_ENABLED: 'false',
+    EAGLERCRAFT_WISP_MONITOR_ENABLED: 'false',
     GITHUB_EVENT_NAME: 'schedule',
   }, {
     log,
@@ -114,13 +114,13 @@ test('runs enabled service probes concurrently', async () => {
 test('one protocol failure does not prevent the other enabled services', async () => {
   const { log } = createLog()
   const calls = []
-  const code = await runMonitor({ ...urls, PEERJS_MONITOR_ENABLED: 'false', WISP_MONITOR_ENABLED: 'false' }, {
+  const code = await runMonitor({ ...urls, MCRAFT_P2P_PEERJS_MONITOR_ENABLED: 'false', EAGLERCRAFT_WISP_MONITOR_ENABLED: 'false' }, {
     log,
     force: true,
     maxAttempts: 1,
     probes: {
-      trystero: async () => { calls.push('trystero'); throw new Error('private endpoint should not be logged') },
-      eaglercraft: async () => { calls.push('eaglercraft'); return { elapsedMs: 1 } },
+      'mcraft-p2p': async () => { calls.push('trystero'); throw new Error('private endpoint should not be logged') },
+      'eaglercraft-relay': async () => { calls.push('eaglercraft'); return { elapsedMs: 1 } },
     },
   })
   assert.equal(code, 1)
@@ -132,21 +132,21 @@ test('publishes incident history after protocol checks when GitHub credentials a
   let published
   const code = await runMonitor({
     ...urls,
-    PEERJS_MONITOR_ENABLED: 'false',
+    MCRAFT_P2P_PEERJS_MONITOR_ENABLED: 'false',
     EAGLERCRAFT_RELAY_MONITOR_ENABLED: 'false',
-    TRYSTERO_MONITOR_ENABLED: 'false',
+    MCRAFT_P2P_MONITOR_ENABLED: 'false',
     GITHUB_TOKEN: 'test-token',
     GITHUB_REPOSITORY: 'owner/repo',
   }, {
     log,
     force: true,
-    probes: { wisp: async () => ({ elapsedMs: 23 }) },
+    probes: { 'eaglercraft-wisp': async () => ({ elapsedMs: 23 }) },
     publishHistory: async (results, env, options) => {
       published = { results, env, options }
     },
   })
   assert.equal(code, 0)
   assert.equal(published.results.filter((result) => result.ok).length, 1)
-  assert.equal(published.results.find((result) => result.service === 'wisp').elapsedMs, 23)
+  assert.equal(published.results.find((result) => result.service === 'eaglercraft-wisp').elapsedMs, 23)
   assert.equal(published.env.GITHUB_REPOSITORY, 'owner/repo')
 })
