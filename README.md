@@ -1,139 +1,84 @@
 # Central Macatuba — WebSocket Monitor
 
-Monitor externo dos relays WebSocket da Central Macatuba, executado pelo GitHub Actions.
+Monitor externo de disponibilidade e integridade funcional dos relays da Central Macatuba, executado pelo GitHub Actions.
 
-O monitor verifica dois serviços:
+## Serviços monitorados
 
-| Serviço | Endpoint | Verificação |
+| Serviço | Cliente/protocolo | Verificação funcional |
 |---|---|---|
-| Mcraft P2P (Trystero) | `wss://<host>/` | Handshake WebSocket + Ping/Pong |
-| EaglerCraft Relay | `wss://<host>/` | Handshake WebSocket + Ping/Pong |
+| Mcraft P2P (Trystero) | `@trystero-p2p/ws-relay` + `werift` | Dois processos Trystero entram em uma sala efêmera e trocam uma ação com nonce e ACK por WebRTC. |
+| EaglerCraft Relay | EaglerSPRelay v1 | Envia o handshake de ping do protocolo (tipo de conexão 0x03) e valida a resposta PKT 0x69. |
+| Mcraft P2P (PeerJS legado) | `peerjs` + `werift` | Dois peers efêmeros registram-se, abrem DataChannel raw e trocam payload binário/ACK. |
+| EaglerCraft Wisp | `@mercuryworkshop/wisp-js` 0.5.3 | Negocia Wisp v2 pelo cliente oficial e valida a versão negociada. |
 
-O PeerJS legado não faz parte deste monitor.
+Cada serviço é independente. Uma falha, desativação ou ausência de configuração de um serviço não interrompe os demais. Os resultados distinguem serviços desativados, fora do horário de verificação, mal configurados e com falha.
 
-## Por que a verificação é WebSocket?
+Trystero e PeerJS usam dois participantes de teste efêmeros. A comunicação WebRTC é feita diretamente entre os processos do runner; não é usado TURN nem tráfego de jogo. A verificação Wisp confirma a negociação v2; um teste de stream TCP não é executado porque não há destino de echo de teste configurado. O EaglerSPRelay recebe somente um ping de protocolo, sem criar Shared World ou código de sessão.
 
-Os dois relays recebem conexões WebSocket na raiz:
+## Configuração do GitHub
 
-- **Trystero:** o servidor usa `@trystero-p2p/ws-relay` e aceita WebSocket em `/`. O endpoint HTTP `/health` existe, mas não substitui o teste do transporte WebSocket.
-- **EaglerCraft Relay:** o relay Java usa a raiz `/` para WebSocket. A resposta HTTP informativa da raiz não é um endpoint de saúde; por isso, o monitor não faz uma requisição HTTP convencional.
+Configure os toggles e intervalos em **Settings → Secrets and variables → Actions → Variables**. Configure os endpoints em **Secrets**.
 
-Cada verificação abre uma conexão real, confirma o handshake HTTP 101, envia um frame WebSocket Ping com um identificador aleatório, aguarda um Pong com os mesmos dados e fecha a conexão com o código 1000. Pongs espontâneos ou que não correspondam ao Ping enviado são ignorados. Não envia mensagens de jogo, códigos de sala ou dados de sinalização.
+### Variáveis globais
 
-> O teste confirma que o endpoint aceita WebSocket e responde aos frames de controle. Ele não substitui um teste funcional completo com clientes MWC/EaglerCraft nem confirma que a troca de mensagens específica da aplicação está funcionando.
+| Variable | Padrão | Descrição |
+|---|---:|---|
+| `WS_MONITOR_ENABLED` | `true` | Liga/desliga todo o monitor. |
+| `WS_MONITOR_INTERVAL_MINUTES` | `5` | Intervalo global, em minutos. Mantém o intervalo original de cinco minutos. |
 
-## Configuração no GitHub
+### Variáveis por serviço
 
-Após integrar esta branch à branch padrão do repositório, configure os seguintes **Repository secrets** em **Settings → Secrets and variables → Actions**:
+| Serviço | Ativar/desativar | Intervalo individual | Secret da URL |
+|---|---|---|---|
+| Trystero | `TRYSTERO_MONITOR_ENABLED` | `TRYSTERO_MONITOR_INTERVAL_MINUTES` | `MCRAFT_TRYSTERO_WS_URL` |
+| EaglerCraft Relay | `EAGLERCRAFT_RELAY_MONITOR_ENABLED` | `EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES` | `EAGLERCRAFT_RELAY_WS_URL` |
+| PeerJS | `PEERJS_MONITOR_ENABLED` | `PEERJS_MONITOR_INTERVAL_MINUTES` | `PEERJS_WS_URL` |
+| Wisp | `WISP_MONITOR_ENABLED` | `WISP_MONITOR_INTERVAL_MINUTES` | `WISP_WS_URL` |
 
-| Secret | Conteúdo |
-|---|---|
-| `MCRAFT_TRYSTERO_WS_URL` | URL WebSocket completa do relay Trystero |
-| `EAGLERCRAFT_RELAY_WS_URL` | URL WebSocket completa do EaglerCraft Relay |
+São 14 configurações: 2 globais e 3 para cada um dos 4 serviços. Se um toggle individual não for definido, o serviço é habilitado automaticamente quando seu secret de URL existe; sem URL, ele fica desabilitado por padrão. Se o toggle for explicitamente `true` sem URL, a execução reporta erro de configuração. Se o intervalo individual estiver vazio ou inválido, será herdado o intervalo global.
 
-Exemplos de formato (substitua pelos endereços efetivamente atribuídos pelo Render):
+Os intervalos são em minutos inteiros positivos. O workflow agenda um tick a cada minuto e o monitor decide individualmente se cada serviço está no seu minuto de execução. A agenda do GitHub Actions é best-effort e não garante precisão temporal. A execução manual força todos os serviços habilitados, ignorando os intervalos.
 
-```text
-MCRAFT_TRYSTERO_WS_URL=wss://<servico-trystero>.onrender.com/
-EAGLERCRAFT_RELAY_WS_URL=wss://<servico-eaglercraft>.onrender.com/
-```
+Exemplos:
+- Definir `WS_MONITOR_ENABLED=false` pausa tudo.
+- Definir `WS_MONITOR_INTERVAL_MINUTES=10` verifica todos os serviços habilitados a cada dez minutos, salvo sobrescrita individual.
+- Definir `PEERJS_MONITOR_ENABLED=true` e cadastrar `PEERJS_WS_URL` ativa PeerJS.
+- Definir `WISP_MONITOR_INTERVAL_MINUTES=15` faz Wisp executar a cada quinze minutos.
 
-Use preferencialmente o hostname `onrender.com` atribuído a cada Web Service. Também é possível usar o domínio personalizado depois de confirmar que o DNS e o TLS estão válidos. Não inclua credenciais, tokens ou parâmetros secretos nas URLs.
+### URLs
 
-Os secrets não são necessários para executar a suíte de testes. A execução do monitor falha explicitamente se algum deles estiver ausente.
+- Trystero e EaglerCraft Relay: URL WebSocket completa (`wss://...`).
+- PeerJS: URL base HTTP(S) ou WS(S) do servidor PeerJS, incluindo o caminho configurado (normalmente `/peerjs`). O parâmetro `key` pode ser incluído na URL se o servidor usar uma chave diferente da padrão.
+- Wisp: URL WebSocket completa incluindo o caminho Wisp configurado (por exemplo, `wss://host/caminho/`).
 
-## Execução automática
+Não inclua credenciais ou tokens nas URLs. Os logs não imprimem endpoints, payloads, IDs temporários ou mensagens recebidas.
 
-O workflow `.github/workflows/websocket-monitor.yml` agenda uma verificação a cada cinco minutos e também permite execução manual em **Actions → WebSocket Relay Monitor → Run workflow**.
+## Execução automática e Render Free
 
-Quando um serviço não responde, o monitor tenta novamente até oito vezes, aguardando dez segundos entre tentativas. Isso dá tempo para o cold start do Render Free (que pode levar aproximadamente um minuto). Os dois relays são verificados em paralelo; a falha de um não impede que o outro seja testado.
-
-O GitHub Actions usa agendamentos de melhor esforço: execuções podem atrasar, especialmente em períodos de alta demanda. Portanto, o intervalo de cinco minutos não é uma garantia rígida nem uma garantia de disponibilidade 24/7.
-
-### Relação com o Render Free
-
-O Render informa que um Web Service Free entra em repouso depois de 15 minutos sem tráfego de entrada e volta a iniciar quando recebe uma requisição HTTP ou uma nova conexão WebSocket. Esse workflow abre novas conexões WebSocket; portanto, pode acordar os relays e, enquanto as verificações chegam regularmente, gerar tráfego de entrada.
-
-Isso **não remove as limitações do Render Free**:
-
-- O serviço pode ser reiniciado ou suspenso por outros motivos.
-- O GitHub Actions pode atrasar uma execução agendada.
-- As horas de instância continuam sendo contabilizadas enquanto o serviço está ativo.
-- O workspace continua sujeito à franquia de 750 horas gratuitas por mês.
-- A conexão de monitoramento não garante disponibilidade contínua nem substitui um plano de produção.
-
-Com verificações regulares, cada serviço monitorado pode consumir praticamente as horas de um mês inteiro (aproximadamente 720 horas em um mês de 30 dias ou 744 em um mês de 31 dias). No workspace Mcraft P2P, somente o Trystero é monitorado; o PeerJS legado fica fora desta rotina.
-
-Referência: [Render — Deploy for Free](https://render.com/docs/free).
+O workflow roda a cada minuto para permitir intervalos independentes; o processo só abre conexões quando o intervalo de cada serviço vence. O padrão permanece cinco minutos. Cada ciclo usa até oito tentativas, com dez segundos entre tentativas, para tolerar cold starts. Isso pode acordar serviços no Render Free e manter atividade, consumindo horas de instância; não remove limites do plano gratuito. O agendamento do GitHub é best-effort.
 
 ## Execução local
 
-Requisitos:
-
-- Node.js 22 ou superior.
-- pnpm 12.12.1.
-
-Instale as dependências:
+Requisitos: Node.js 22+ e pnpm 12.12.1.
 
 ```bash
 pnpm install --frozen-lockfile
-```
-
-Execute verificações de código e testes:
-
-```bash
 pnpm check
 pnpm test
-```
-
-Execute o monitor (requer os dois endereços):
-
-```bash
-MCRAFT_TRYSTERO_WS_URL=wss://host-trystero/ \
-EAGLERCRAFT_RELAY_WS_URL=wss://host-eaglercraft/ \
 pnpm monitor
 ```
 
-No PowerShell, defina as variáveis de ambiente com `$env:NOME="valor"` antes de executar `pnpm monitor`.
+Defina os secrets/variáveis correspondentes no ambiente antes de executar. Em uma execução local, todos os serviços habilitados são executados imediatamente.
 
-## Configurações opcionais
+## Segurança
 
-| Variável | Padrão | Descrição |
-|---|---:|---|
-| `WS_CONNECT_TIMEOUT_MS` | `15000` | Timeout do handshake de cada tentativa |
-| `WS_PONG_TIMEOUT_MS` | `5000` | Tempo máximo para receber Pong após Ping |
-| `WS_MAX_ATTEMPTS` | `8` | Número máximo de tentativas por serviço |
-| `WS_RETRY_DELAY_MS` | `10000` | Intervalo entre tentativas |
-| `WS_CLOSE_TIMEOUT_MS` | `1000` | Tempo antes de forçar o encerramento local |
-
-Os valores padrão são usados no GitHub Actions. Ajuste-os somente se houver uma razão operacional.
-
-## Estrutura
-
-```text
-.github/
-├── dependabot.yml
-└── workflows/
-    ├── ci.yml
-    └── websocket-monitor.yml
-src/
-├── check-websocket.js
-└── monitor.js
-tests/
-└── check-websocket.test.js
-package.json
-pnpm-lock.yaml
-```
-
-## Segurança e privacidade
-
-- Os endereços dos serviços são armazenados como GitHub Actions secrets.
-- O monitor não imprime as URLs, query strings ou credenciais nos logs.
-- O workflow possui somente permissão `contents: read`.
-- O checkout não persiste o token do GitHub no repositório local.
-- As ações de terceiros são fixadas em SHAs completos e imutáveis.
-- Não são enviados dados de jogo, mensagens Trystero, códigos de mundo ou credenciais de TURN.
-- As conexões são encerradas após o Ping/Pong.
+- Nenhuma URL ou credencial é escrita nos logs.
+- Os payloads de teste são pequenos, aleatórios e efêmeros.
+- As salas e peers Trystero/PeerJS são encerrados após o teste.
+- EaglerSPRelay recebe somente um pacote ping oficial e não cria mundos.
+- Wisp negocia versão sem abrir streams para destinos externos.
+- O workflow mantém permissão `contents: read` e checkout com `persist-credentials: false`.
+- O teste de transporte WebSocket genérico continua disponível em `src/check-websocket.js`, mas os quatro probes usam clientes ou mensagens de protocolo próprios.
 
 ## Licença
 

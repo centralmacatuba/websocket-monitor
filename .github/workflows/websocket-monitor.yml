@@ -1,8 +1,9 @@
 name: WebSocket Relay Monitor
 
 on:
+  # One-minute scheduler; the Node monitor applies each configured interval.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "* * * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,9 +15,9 @@ concurrency:
 
 jobs:
   monitor:
-    name: Check relay WebSockets
+    name: Check enabled relay protocols
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     steps:
       - name: Checkout
@@ -38,13 +39,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check WebSocket relays
+      - name: Check configured protocols
         env:
+          WS_MONITOR_ENABLED: ${{ vars.WS_MONITOR_ENABLED }}
+          WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
+          TRYSTERO_MONITOR_ENABLED: ${{ vars.TRYSTERO_MONITOR_ENABLED }}
+          TRYSTERO_MONITOR_INTERVAL_MINUTES: ${{ vars.TRYSTERO_MONITOR_INTERVAL_MINUTES }}
           MCRAFT_TRYSTERO_WS_URL: ${{ secrets.MCRAFT_TRYSTERO_WS_URL }}
+          EAGLERCRAFT_RELAY_MONITOR_ENABLED: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_ENABLED }}
+          EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES }}
           EAGLERCRAFT_RELAY_WS_URL: ${{ secrets.EAGLERCRAFT_RELAY_WS_URL }}
+          PEERJS_MONITOR_ENABLED: ${{ vars.PEERJS_MONITOR_ENABLED }}
+          PEERJS_MONITOR_INTERVAL_MINUTES: ${{ vars.PEERJS_MONITOR_INTERVAL_MINUTES }}
+          PEERJS_WS_URL: ${{ secrets.PEERJS_WS_URL }}
+          WISP_MONITOR_ENABLED: ${{ vars.WISP_MONITOR_ENABLED }}
+          WISP_MONITOR_INTERVAL_MINUTES: ${{ vars.WISP_MONITOR_INTERVAL_MINUTES }}
+          WISP_WS_URL: ${{ secrets.WISP_WS_URL }}
           WS_CONNECT_TIMEOUT_MS: "15000"
-          WS_PONG_TIMEOUT_MS: "5000"
           WS_MAX_ATTEMPTS: "8"
           WS_RETRY_DELAY_MS: "10000"
-          WS_CLOSE_TIMEOUT_MS: "1000"
         run: pnpm monitor

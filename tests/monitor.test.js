@@ -1,96 +1,109 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { monitorTarget, runMonitor } from '../src/monitor.js'
+import { isIntervalDue, parseBoolean, positiveInteger, runMonitor } from '../src/monitor.js'
 
-function captureLog() {
+function createLog() {
   const entries = { info: [], warn: [], error: [] }
-  return { entries, log: Object.fromEntries(Object.keys(entries).map((level) => [level, (message) => entries[level].push(message)])) }
+  return {
+    entries,
+    log: Object.fromEntries(Object.keys(entries).map((level) => [level, (message) => entries[level].push(message)])),
+  }
 }
 
-const success = { ok: true, handshake: true, pong: true, elapsedMs: 7 }
+const urls = {
+  MCRAFT_TRYSTERO_WS_URL: 'wss://trystero.example.test/',
+  EAGLERCRAFT_RELAY_WS_URL: 'wss://eagler.example.test/',
+  PEERJS_WS_URL: 'https://peerjs.example.test/peerjs',
+  WISP_WS_URL: 'wss://wisp.example.test/wisp/',
+}
 
-test('passes normalized URL and timeout options to the checker and stops after success', async () => {
-  const calls = []
-  const { log, entries } = captureLog()
-  const result = await monitorTarget({ name: 'relay', url: 'WS://EXAMPLE.test' }, {
-    maxAttempts: 3, connectTimeoutMs: 12, pongTimeoutMs: 13, closeTimeoutMs: 14, log,
-    check: async (...args) => { calls.push(args); return success },
+test('parses boolean and positive interval settings with safe fallbacks', () => {
+  assert.equal(parseBoolean('false', true), false)
+  assert.equal(parseBoolean('ON', false), true)
+  assert.equal(parseBoolean('invalid', true), true)
+  assert.equal(positiveInteger('12', 5), 12)
+  assert.equal(positiveInteger('0', 5), 5)
+  assert.equal(positiveInteger('1.5', 5), 5)
+})
+
+test('calculates independent UTC schedule intervals', () => {
+  const atMinuteTen = Date.UTC(2026, 10, 25, 12, 10) 
+  assert.equal(isIntervalDue(5, atMinuteTen), true)
+  assert.equal(isIntervalDue(10, atMinuteTen), true)
+  assert.equal(isIntervalDue(7, atMinuteTen), false)
+})
+
+test('global switch skips all services', async () => {
+  const { log, entries } = createLog()
+  const code = await runMonitor({ ...urls, WS_MONITOR_ENABLED: 'false' }, {
+    log,
+    probe: async () => { throw new Error('must not run') },
   })
-  assert.deepEqual(calls, [['ws://example.test/', { connectTimeoutMs: 12, pongTimeoutMs: 13, closeTimeoutMs: 14 }]])
-  assert.deepEqual(result, { name: 'relay', attempts: 1, ...success })
-  assert.match(entries.info[0], /\[UP\].*tentativa 1\/3/)
-  assert.equal(entries.warn.length, 0)
+  assert.equal(code, 0)
+  assert.match(entries.info[0], /desativou o monitor global/)
 })
 
-test('retries failures up to the limit and reports a final failure', async () => {
-  let calls = 0
-  const { log, entries } = captureLog()
-  const result = await monitorTarget({ name: 'relay', url: 'ws://example.test/' }, {
-    maxAttempts: 3, retryDelayMs: 0, log,
-    check: async () => { calls += 1; throw new Error('offline') },
-  })
-  assert.deepEqual(result, { ok: false, name: 'relay', attempts: 3 })
-  assert.equal(calls, 3)
-  assert.equal(entries.warn.length, 3)
-  assert.match(entries.warn[2], /tentativa 3\/3 — offline/)
-  assert.match(entries.error[0], /indisponível após 3 tentativas/)
-})
-
-test('rejects invalid configuration without invoking the checker', async () => {
-  let called = false
-  await assert.rejects(monitorTarget({ name: 'relay', url: 'https://example.test/' }, {
-    check: async () => { called = true },
-  }), /must use ws/)
-  assert.equal(called, false)
-})
-
-test('missing secrets fail before either relay is checked', async (t) => {
-  const error = t.mock.method(console, 'error', () => {})
-  let calls = 0
-  const code = await runMonitor({ MCRAFT_TRYSTERO_WS_URL: 'ws://example.test/' }, {
-    check: async () => { calls += 1; return success },
-  })
-  assert.equal(code, 1)
-  assert.equal(calls, 0)
-  assert.match(error.mock.calls[0].arguments[0], /Secret ausente para: EaglerCraft Relay/)
-})
-
-test('checks both relays concurrently and summarizes success', async (t) => {
-  const info = t.mock.method(console, 'info', () => {})
-  const pending = []
-  const promise = runMonitor({
-    MCRAFT_TRYSTERO_WS_URL: 'ws://first.test/',
-    EAGLERCRAFT_RELAY_WS_URL: 'wss://second.test/',
-  }, { log: captureLog().log, check: (url) => new Promise((resolve) => pending.push({ url, resolve })) })
-  assert.deepEqual(pending.map(({ url }) => url), ['ws://first.test/', 'wss://second.test/'])
-  for (const item of pending) item.resolve(success)
-  assert.equal(await promise, 0)
-  assert.match(info.mock.calls[0].arguments[0], /2\/2 relays/)
-})
-
-test('a bad URL does not prevent the other relay from being checked', async (t) => {
-  const error = t.mock.method(console, 'error', () => {})
-  const info = t.mock.method(console, 'info', () => {})
+test('per-service switches and URL presence define safe defaults', async () => {
+  const { log } = createLog()
   const calls = []
   const code = await runMonitor({
-    MCRAFT_TRYSTERO_WS_URL: 'ws://user:secret@first.test/',
-    EAGLERCRAFT_RELAY_WS_URL: 'ws://second.test/',
-  }, { log: captureLog().log, check: async (url) => { calls.push(url); return success } })
-  assert.equal(code, 1)
-  assert.deepEqual(calls, ['ws://second.test/'])
-  assert.match(error.mock.calls[0].arguments[0], /\[CONFIG\] Mcraft/)
-  assert.doesNotMatch(error.mock.calls[0].arguments[0], /secret/)
-  assert.match(info.mock.calls[0].arguments[0], /1\/2 relays/)
-})
-
-test('returns failure when a relay exhausts its attempts', async (t) => {
-  t.mock.method(console, 'info', () => {})
-  const code = await runMonitor({
-    MCRAFT_TRYSTERO_WS_URL: 'ws://first.test/',
-    EAGLERCRAFT_RELAY_WS_URL: 'ws://second.test/',
+    ...urls,
+    PEERJS_MONITOR_ENABLED: 'false',
+    WISP_MONITOR_ENABLED: 'true',
   }, {
-    maxAttempts: 1, log: captureLog().log,
-    check: async (url) => { if (url.includes('first')) throw new Error('offline'); return success },
+    log,
+    force: true,
+    maxAttempts: 1,
+    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
   })
   assert.equal(code, 1)
+  assert.deepEqual(calls, ['trystero', 'eaglercraft'])
+})
+
+test('uses the global interval when a service interval is not set', async () => {
+  const { log } = createLog()
+  const calls = []
+  const code = await runMonitor({
+    ...urls,
+    WS_MONITOR_INTERVAL_MINUTES: '10',
+    TRYSTERO_MONITOR_INTERVAL_MINUTES: '15',
+    GITHUB_EVENT_NAME: 'schedule',
+  }, {
+    log,
+    now: Date.UTC(2026, 10, 25, 12, 10),
+    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(calls, ['eaglercraft'])
+})
+
+test('manual dispatch forces all enabled services regardless of interval', async () => {
+  const { log } = createLog()
+  const calls = []
+  const code = await runMonitor({
+    ...urls,
+    GITHUB_EVENT_NAME: 'workflow_dispatch',
+    WS_MONITOR_INTERVAL_MINUTES: '90',
+  }, {
+    log,
+    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(calls, ['trystero', 'eaglercraft', 'peerjs', 'wisp'])
+})
+
+test('one protocol failure does not prevent the other enabled services', async () => {
+  const { log } = createLog()
+  const calls = []
+  const code = await runMonitor(urls, {
+    log,
+    force: true,
+    maxAttempts: 1,
+    probes: {
+      trystero: async () => { calls.push('trystero'); throw new Error('private endpoint should not be logged') },
+      eaglercraft: async () => { calls.push('eaglercraft'); return { elapsedMs: 1 } },
+    },
+  })
+  assert.equal(code, 1)
+  assert.deepEqual(calls, ['trystero', 'eaglercraft'])
 })
