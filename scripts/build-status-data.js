@@ -68,7 +68,10 @@ const maintenances = (maintenanceConfig.maintenances ?? []).map((item) => {
   if (!item || !validServiceIds.has(item.service) || !Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt >= endsAt) {
     throw new Error('Invalid maintenance entry in status-page/maintenance.json')
   }
-  if (item.status !== undefined && !['scheduled', 'in_progress', 'completed'].includes(item.status)) {\n    throw new Error('Maintenance status must be scheduled, in_progress, or completed')\n  }\n  if (item.excludeFromUptime !== undefined && typeof item.excludeFromUptime !== 'boolean') {
+  if (item.status !== undefined && !['scheduled', 'in_progress', 'completed'].includes(item.status)) {
+    throw new Error('Maintenance status must be scheduled, in_progress, or completed')
+  }
+  if (item.excludeFromUptime !== undefined && typeof item.excludeFromUptime !== 'boolean') {
     throw new Error('Maintenance excludeFromUptime must be a boolean')
   }
   return item
