@@ -79,7 +79,7 @@ const maintenances = (maintenanceConfig.maintenances ?? []).map((item) => {
 })
 const globalInterval = effectiveIntervalMinutes(process.env.WS_MONITOR_INTERVAL_MINUTES ?? config.expectedIntervalMinutes ?? 5)
 const services = config.services.map((service) => buildServiceSummary(
-  { ...service, expectedIntervalMinutes: effectiveIntervalMinutes(process.env[service.intervalVariable] || globalInterval) },
+  { ...service, expectedIntervalMinutes: effectiveIntervalMinutes(process.env[service.intervalVariable], globalInterval) },
   samplesByService[service.id],
   now,
   maintenances.filter((item) => item.service === service.id || item.service === 'all'),
