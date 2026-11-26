@@ -39,7 +39,10 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
   // before importing PeerJS so its runtime feature detection sees the API.
   globalThis.window ??= globalThis
   const { installPolyfill } = await import('werift/polyfill')
-  const uninstallPolyfill = installPolyfill({ mediaRegister: [] })
+  const uninstallPolyfill = installPolyfill({
+    mediaRegister: [],
+    peerConnectionConfig: { compatibility: 'standard', iceServers: [], iceUseDefaultStunServer: false },
+  })
   let receiver
   let sender
   let incoming
