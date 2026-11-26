@@ -46,8 +46,9 @@ test('global switch skips all services', async () => {
 test('per-service switches and URL presence define safe defaults', async () => {
   const { log } = createLog()
   const calls = []
+  const { WISP_WS_URL: _unusedWispUrl, ...withoutWispUrl } = urls
   const code = await runMonitor({
-    ...urls,
+    ...withoutWispUrl,
     PEERJS_MONITOR_ENABLED: 'false',
     WISP_MONITOR_ENABLED: 'true',
   }, {
@@ -67,6 +68,8 @@ test('uses the global interval when a service interval is not set', async () => 
     ...urls,
     WS_MONITOR_INTERVAL_MINUTES: '10',
     TRYSTERO_MONITOR_INTERVAL_MINUTES: '15',
+    PEERJS_MONITOR_ENABLED: 'false',
+    WISP_MONITOR_ENABLED: 'false',
     GITHUB_EVENT_NAME: 'schedule',
   }, {
     log,
@@ -95,7 +98,7 @@ test('manual dispatch forces all enabled services regardless of interval', async
 test('one protocol failure does not prevent the other enabled services', async () => {
   const { log } = createLog()
   const calls = []
-  const code = await runMonitor(urls, {
+  const code = await runMonitor({ ...urls, PEERJS_MONITOR_ENABLED: 'false', WISP_MONITOR_ENABLED: 'false' }, {
     log,
     force: true,
     maxAttempts: 1,
