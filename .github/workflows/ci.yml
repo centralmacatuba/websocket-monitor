@@ -47,6 +47,9 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
+      - name: Install pinned PeerServer for integration test
+        run: npm install --global peer@1.0.2
+
       - name: Run real PeerJS integration test
         env:
           RUN_PEERJS_INTEGRATION: "1"
