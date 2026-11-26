@@ -7,6 +7,8 @@ export function checkWisp(url, { timeoutMs = 15_000, ClientConnection = wisp.Cli
     throw new Error('Invalid Wisp WebSocket URL')
   }
 
+  if (!parsed.pathname.endsWith('/')) parsed.pathname += '/'
+
   return new Promise((resolve, reject) => {
     const startedAt = Date.now()
     const connection = new ClientConnection(parsed.toString(), { wisp_version: 2 })
