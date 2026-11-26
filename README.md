@@ -150,7 +150,7 @@ O workflow roda a cada cinco minutos (menor cadência suportada pelo agendador d
 
 ## Execução local
 
-Requisitos: Node.js 22+ e pnpm 12.12.1. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais.
+Requisitos: Node.js 22+ e pnpm 12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais.
 
 ```bash
 pnpm install --frozen-lockfile
