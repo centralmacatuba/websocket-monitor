@@ -42,7 +42,7 @@ test('closes an active incident after recovery', async () => {
 
 test('daily snapshots are idempotent for the same UTC date', async () => {
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 12, title: '[WebSocket Monitor][Metrics] Daily health history', body: '<!-- websocket-monitor-last-daily:wisp:2026-11-25 -->' }] },
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 12, title: '[WebSocket Monitor][Metrics] Daily health history', body: '<!-- websocket-monitor-snapshot:wisp:2026-11-25-12 -->' }] },
   ])
   const result = await recordDailySnapshot([{ service: 'wisp', name: 'Wisp', ok: true, elapsedMs: 12 }], env, {
     fetchImpl,
@@ -67,7 +67,7 @@ test('creates the metrics issue with the first daily snapshot included', async (
   })
   assert.equal(calls.length, 2)
   assert.match(calls[1].options.body, /\| Wisp \| UP \| 18 ms \| 1 \|/)
-  assert.match(calls[1].options.body, /websocket-monitor-last-daily:wisp:2026-11-25/)
+  assert.match(calls[1].options.body, /websocket-monitor-snapshot:wisp:2026-11-25-12/)
 })
 
 test('records each service once per UTC day without suppressing other services', async () => {
@@ -75,7 +75,7 @@ test('records each service once per UTC day without suppressing other services',
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{
       number: 12,
       title: '[WebSocket Monitor][Metrics] Daily health history',
-      body: '<!-- websocket-monitor-last-daily:wisp:2026-11-25 -->',
+      body: '<!-- websocket-monitor-snapshot:wisp:2026-11-25-12 -->',
     }] },
     { match: (url) => url.endsWith('/issues/12/comments'), status: 201, body: {} },
     { match: (url) => url.endsWith('/issues/12'), status: 200, body: {} },
@@ -86,7 +86,7 @@ test('records each service once per UTC day without suppressing other services',
   ], env, { fetchImpl, now: Date.UTC(2026, 10, 25, 12) })
   assert.deepEqual(result, { skipped: false, issueNumber: 12 })
   assert.match(calls[1].options.body, /PeerJS/)
-  assert.match(calls[2].options.body, /websocket-monitor-last-daily:peerjs:2026-11-25/)
+  assert.match(calls[2].options.body, /websocket-monitor-snapshot:peerjs:2026-11-25-12/)
 })
 
 test('does not create an empty daily snapshot when no service was checked', async () => {
