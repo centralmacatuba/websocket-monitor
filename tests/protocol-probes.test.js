@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createEaglerPingPacket, parseEaglerPong } from '../src/probes/eaglercraft-relay.js'
+import { parsePeerServerUrl } from '../src/probes/peerjs.js'
+import { checkWisp } from '../src/probes/wisp.js'
 
 function javaUtf(value) {
   const bytes = Buffer.from(value, 'utf8')
@@ -28,8 +30,6 @@ test('rejects unexpected, truncated, and incompatible EaglerSPRelay responses', 
   assert.throws(() => parseEaglerPong(Buffer.from([0x69, 0x01, 0x00])), /Truncated/)
 })
 
-import { parsePeerServerUrl } from '../src/probes/peerjs.js'
-import { checkWisp } from '../src/probes/wisp.js'
 
 test('parses PeerJS server endpoints into client options', () => {
   assert.deepEqual(parsePeerServerUrl('wss://peer.example.test:8443/peerjs/?key=cm-key'), {
