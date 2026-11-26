@@ -46,8 +46,10 @@ async function runService(service, url, options) {
     log = console,
     probe = service.probe,
   } = options
+  const effectiveMaxAttempts = service.maxAttempts ?? maxAttempts
+  const effectiveRetryDelayMs = service.retryDelayMs ?? retryDelayMs
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt += 1) {
     const attemptStartedAt = Date.now()
     try {
       const result = await probe(url, { timeoutMs })
@@ -56,12 +58,12 @@ async function runService(service, url, options) {
       return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result, elapsedMs }
     } catch {
       safeLog(log, 'warn', `[DOWN] ${service.name}: falha de protocolo/transporte (tentativa ${attempt}/${maxAttempts})`)
-      if (attempt < maxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, retryDelayMs))
+      if (attempt < effectiveMaxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, effectiveRetryDelayMs))
     }
   }
 
-  safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${maxAttempts} tentativas`)
-  return { ok: false, service: service.id, name: service.name, attempts: maxAttempts, elapsedMs: null }
+  safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${effectiveMaxAttempts} tentativas`)
+  return { ok: false, service: service.id, name: service.name, attempts: effectiveMaxAttempts, elapsedMs: null }
 }
 
 /**
