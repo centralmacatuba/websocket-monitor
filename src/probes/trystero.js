@@ -85,7 +85,7 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
       })
     }), timeoutMs + 1_000, 'Trystero peer exchange timed out')
 
-    await Promise.all([room.ready, childReady])
+    await Promise.all([room.getSelf(), childReady])
     await ack
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
