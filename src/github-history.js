@@ -97,7 +97,7 @@ export async function recordCheckHistory(results, env = process.env, options = {
   const apiUrl = env.GITHUB_API_URL ?? 'https://api.github.com'
   const now = options.now ?? Date.now()
   const date = new Date(now).toISOString().slice(0, 10)
-  const included = results.filter((result) => result.service && typeof result.ok === 'boolean')
+  const included = results.filter((result) => result.service && typeof result.ok === 'boolean' && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
   if (included.length === 0) return { skipped: true, reason: 'no-checks' }
 
   const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
