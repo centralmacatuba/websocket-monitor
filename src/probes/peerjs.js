@@ -49,7 +49,13 @@ export async function checkPeerJs(url, { timeoutMs = 15_000, PeerClass, installP
   let outgoing
 
   try {
-    const Peer = PeerClass ?? (await import('peerjs')).Peer
+    const peerjsModule = PeerClass ? null : await import('peerjs')
+    const Peer = PeerClass ?? [
+      peerjsModule.Peer,
+      peerjsModule.default?.Peer,
+      peerjsModule.default,
+    ].find((candidate) => typeof candidate === 'function')
+    if (typeof Peer !== 'function') throw new Error('PeerJS client does not expose a Peer constructor')
     const peerOptions = { ...options, debug: 0, config: { iceServers: [], iceUseDefaultStunServer: false } }
     receiver = new Peer(undefined, peerOptions)
     sender = new Peer(undefined, peerOptions)
