@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { createServer } from 'node:http'
+import { WebSocketServer } from 'ws'
 import { test } from 'node:test'
 import { checkEaglerRelay, createEaglerPingPacket, parseEaglerPong } from '../src/probes/eaglercraft-relay.js'
 import { parsePeerServerUrl } from '../src/probes/peerjs.js'
@@ -99,4 +101,31 @@ test('normalizes Wisp endpoint paths with a trailing slash', async () => {
     close() {}
   }
   await checkWisp('wss://wisp.example.test/wisp', { ClientConnection: FakeClientConnection })
+})
+
+test('completes an EaglerSPRelay v1 ping round-trip against a local WebSocket server', async () => {
+  const server = createServer()
+  const websocketServer = new WebSocketServer({ server })
+  websocketServer.on('connection', (socket) => {
+    socket.on('message', (packet) => {
+      assert.deepEqual(Buffer.from(packet), Buffer.from([0x00, 0x01, 0x03]))
+      const comment = javaUtf('local test relay')
+      const brand = javaUtf('EaglerSPRelay')
+      socket.send(Buffer.concat([Buffer.from([0x69, 0x01]), comment, brand]))
+    })
+  })
+  await new Promise((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  const address = server.address()
+  try {
+    const result = await checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 2_000 })
+    assert.equal(result.transport, true)
+    assert.equal(result.protocol, true)
+    assert.equal(result.protocolVersion, 1)
+  } finally {
+    await new Promise((resolve) => websocketServer.close(resolve))
+    await new Promise((resolve) => server.close(resolve))
+  }
 })
