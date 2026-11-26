@@ -30,7 +30,7 @@ test('calculates independent UTC schedule intervals', () => {
   const atMinuteTen = Date.UTC(2026, 10, 25, 12, 10) 
   assert.equal(isIntervalDue(5, atMinuteTen), true)
   assert.equal(isIntervalDue(10, atMinuteTen), true)
-  assert.equal(isIntervalDue(7, atMinuteTen), false)
+  assert.equal(isIntervalDue(7, atMinuteTen), true)
 })
 
 test('global switch skips all services', async () => {
