@@ -271,3 +271,52 @@ test('Trystero cleans up the worker when room initialization fails', async () =>
   assert.equal(harness.leaveCount, 0)
   assert.equal(harness.child.exitCode, 0)
 })
+
+test('EaglerSPRelay rejects an early server disconnect and cleans up', async () => {
+  const server = createServer()
+  const websocketServer = new WebSocketServer({ server })
+  websocketServer.on('connection', (socket) => socket.close(1000, 'test disconnect'))
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  try {
+    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 500 }), /closed before protocol response/)
+  } finally {
+    await new Promise((resolve) => websocketServer.close(resolve))
+    await new Promise((resolve) => server.close(resolve))
+  }
+})
+
+test('EaglerSPRelay times out when the server never answers the protocol ping', async () => {
+  const server = createServer()
+  const websocketServer = new WebSocketServer({ server })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  try {
+    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 20 }), /protocol timeout/)
+  } finally {
+    await new Promise((resolve) => websocketServer.close(resolve))
+    await new Promise((resolve) => server.close(resolve))
+  }
+})
+
+test('PeerJS data-channel timeout still closes connections and destroys peers', async () => {
+  const { FakePeer } = makeFakePeerHarness({ openConnections: false })
+  let uninstalled = 0
+  await assert.rejects(checkPeerJs('https://peer.example.test/peerjs', {
+    PeerClass: FakePeer,
+    installPolyfillImpl: () => () => { uninstalled += 1 },
+    timeoutMs: 5,
+  }), /data connection timed out/)
+  assert.ok(FakePeer.instances.every((peer) => peer.destroyed))
+  assert.equal(uninstalled, 1)
+})
+
+test('Wisp disconnect before negotiation is a failure and closes the client', async () => {
+  let closeCount = 0
+  class DisconnectingConnection {
+    constructor() { queueMicrotask(() => this.onclose?.()) }
+    close() { closeCount += 1 }
+  }
+  await assert.rejects(checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: DisconnectingConnection }), /closed before v2 negotiation/)
+  assert.equal(closeCount, 1)
+})
