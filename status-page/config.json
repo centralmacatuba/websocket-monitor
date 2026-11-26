@@ -1,6 +1,6 @@
 {
   "repository": "centralmacatuba/websocket-monitor",
-  "metricsIssueTitle": "[WebSocket Monitor][Metrics] Daily health history",
+  "metricsIssueTitle": "[WebSocket Monitor][Metrics] Histórico diário de saúde",
   "expectedIntervalMinutes": 5,
   "services": [
     {
@@ -23,7 +23,7 @@
     },
     {
       "id": "wisp",
-      "name": "EaglerCraft Wisp v2",
+      "name": "EaglerCraft Wisp",
       "expectedIntervalMinutes": 5,
       "degradedLatencyMs": 2000
     }
