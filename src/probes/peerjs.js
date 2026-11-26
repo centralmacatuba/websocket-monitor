@@ -17,6 +17,7 @@ function parsePeerServerUrl(value) {
     host: url.hostname,
     port: Number(url.port) || (['https:', 'wss:'].includes(url.protocol) ? 443 : 80),
     path: url.pathname.replace(/\/+$/, '') || '/peerjs',
+    protocol: ['https:', 'wss:'].includes(url.protocol) ? 'https' : 'http',
     secure: ['https:', 'wss:'].includes(url.protocol),
     key: url.searchParams.get('key') || 'peerjs',
   }
@@ -46,7 +47,7 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
 
   try {
     const { Peer } = await import('peerjs')
-    const peerOptions = { ...options, debug: 0, config: { iceServers: [] } }
+    const peerOptions = { ...options, debug: 0, config: { iceServers: [], iceUseDefaultStunServer: false } }
     receiver = new Peer(undefined, peerOptions)
     sender = new Peer(undefined, peerOptions)
 
@@ -69,15 +70,13 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
       receiver.once('connection', (connection) => {
         incoming = connection
         connection.once('error', rejectData)
-        connection.once('open', () => {
-          connection.on('data', (data) => {
+        connection.on('data', (data) => {
             try {
               const bytes = toBuffer(data)
               if (!bytes.equals(payload)) return rejectData(new Error('PeerJS payload mismatch'))
               connection.send(ack)
               resolveData()
             } catch (error) { rejectData(error) }
-          })
         })
       })
     })
