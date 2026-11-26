@@ -16,7 +16,7 @@ function parsePeerServerUrl(value) {
   return {
     host: url.hostname,
     port: Number(url.port) || (['https:', 'wss:'].includes(url.protocol) ? 443 : 80),
-    path: url.pathname.replace(/\\/+$/, '') || '/peerjs',
+    path: url.pathname.replace(/\/+$/, '') || '/peerjs',
     secure: ['https:', 'wss:'].includes(url.protocol),
     key: url.searchParams.get('key') || 'peerjs',
   }
