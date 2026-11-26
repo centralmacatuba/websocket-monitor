@@ -15,8 +15,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0(bufferutil@4.2.0)
       peerjs:
-        specifier: 1.5.5
-        version: 1.5.5
+        specifier: 1.5.4
+        version: 1.5.4
       werift:
         specifier: 0.28.0
         version: 0.28.0
@@ -98,9 +98,12 @@ packages:
     resolution: {integrity: sha512-YIwCC+pTzp3Bi8jPI9UFKO0t0SLo6xALnHkiNt/iUFmUUZG0fEEmEyFKvjsDKweiFitzHRyhuh6NvyJZ4nNxMg==}
     engines: {node: '>= 14.0.0'}
 
-  peerjs@1.5.5:
-    resolution: {integrity: sha512-viMUCPDL6CSfOu0ZqVcFqbWRXNHIbv2lPqNbrBIjbFYrflebOjItJ4hPfhjnuUCstqciHVu9vVJ7jFqqKi/EuQ==}
+  peerjs@1.5.4:
+    resolution: {integrity: sha512-yFsoLMnurJKlQbx6kVSBpOp+AlNldY1JQS2BrSsHLKCZnq6t7saHleuHM5svuLNbQkUJXHLF3sKOJB1K0xulOw==}
     engines: {node: '>= 14'}
+
+  sdp@3.2.0:
+    resolution: {integrity: sha512-d7wDPgDV3DDiqulJjKiV2865wKsJ34YI+NDREbm+FySq6WuKOikwyNQcm+doLAZ1O6ltdO0SeKle2xMpN3Brgw==}
 
   sdp@3.2.3:
     resolution: {integrity: sha512-UYuY3JFaVa7Zc+rxxi8iblwD7mdloGxCzMEQIJPcCLiHKjjqMqLsruMkI+emgnYARkfHk4o7seEETABc4bwokg==}
@@ -110,6 +113,10 @@ packages:
 
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
+  webrtc-adapter@9.0.1:
+    resolution: {integrity: sha512-1AQO+d4ElfVSXyzNVTOewgGT/tAomwwztX/6e3totvyyzXPvXIIuUUjAmyZGbKBKbZOXauuJooZm3g6IuFuiNQ==}
+    engines: {node: '>=6.0.0', npm: '>=3.10.0'}
 
   webrtc-adapter@9.0.6:
     resolution: {integrity: sha512-CHbl2ZQbxx164IgWRgzJno4hWtM4tFbRam1QfI3Yxhs3w/DvqluVxVWeXs3oL5/fbGkSNLKo0Ty5MgUWceNhog==}
@@ -208,18 +215,24 @@ snapshots:
 
   peerjs-js-binarypack@2.1.0: {}
 
-  peerjs@1.5.5:
+  peerjs@1.5.4:
     dependencies:
       '@msgpack/msgpack': 2.8.0
       eventemitter3: 4.0.7
       peerjs-js-binarypack: 2.1.0
-      webrtc-adapter: 9.0.6
+      webrtc-adapter: 9.0.1
+
+  sdp@3.2.0: {}
 
   sdp@3.2.3: {}
 
   thunky@1.1.0: {}
 
   undici-types@8.9.0: {}
+
+  webrtc-adapter@9.0.1:
+    dependencies:
+      sdp: 3.2.0
 
   webrtc-adapter@9.0.6:
     dependencies:
