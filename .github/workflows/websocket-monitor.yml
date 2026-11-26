@@ -1,9 +1,9 @@
 name: WebSocket Relay Monitor
 
 on:
-  # One-minute scheduler; the Node monitor applies each configured interval.
+  # GitHub Actions supports scheduled runs at a minimum five-minute cadence.
   schedule:
-    - cron: "* * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
