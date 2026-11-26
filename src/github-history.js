@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
+import { METRICS_ISSUE_TITLE, findMetricsIssue } from './metrics.js'
 
 const API_VERSION = '2022-11-28'
-const METRICS_TITLE = '[WebSocket Monitor][Metrics] Daily health history'
 const SERIES_MARKER = (service, date) => `<!-- websocket-monitor-series:v1:${service}:${date} -->`
 
 function headers(token) {
@@ -18,6 +18,17 @@ async function githubRequest(path, token, options = {}, fetchImpl = fetch, apiUr
 function repoPath(repository) {
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? '')) throw new Error('GITHUB_REPOSITORY is invalid')
   return `/repos/${repository}`
+}
+
+async function githubRequestAllPages(path, token, fetchImpl, apiUrl) {
+  const items = []
+  for (let page = 1; page <= 20; page += 1) {
+    const separator = path.includes('?') ? '&' : '?'
+    const batch = await githubRequest(`${path}${separator}per_page=100&page=${page}`, token, {}, fetchImpl, apiUrl)
+    items.push(...batch)
+    if (batch.length < 100) return items
+  }
+  throw new Error('GitHub API pagination exceeded the safety limit')
 }
 
 function incidentTitle(result) {
@@ -43,7 +54,7 @@ export async function syncIncidents(results, env = process.env, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch
   const apiUrl = env.GITHUB_API_URL ?? 'https://api.github.com'
   const now = options.now ?? Date.now()
-  const openIssues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
+  const openIssues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
   const issues = openIssues.filter((issue) => !issue.pull_request)
 
   for (const result of results) {
@@ -100,12 +111,12 @@ export async function recordCheckHistory(results, env = process.env, options = {
   const included = results.filter((result) => result.service && typeof result.ok === 'boolean' && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
   if (included.length === 0) return { skipped: true, reason: 'no-checks' }
 
-  const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
-  let metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === METRICS_TITLE)
+  const issues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
+  let metricsIssue = findMetricsIssue(issues)
   if (!metricsIssue) {
     metricsIssue = await githubRequest(`${repository}/issues`, token, {
       method: 'POST',
-      body: JSON.stringify({ title: METRICS_TITLE, body: [
+      body: JSON.stringify({ title: METRICS_ISSUE_TITLE, body: [
         '# WebSocket Monitor — raw check history', '',
         'Compact per-service daily JSON time series used by the public status page.',
         'Each sample is a real protocol probe. Availability is calculated from successful and failed executed checks; missing checks are not fabricated as uptime or downtime.',
@@ -114,7 +125,7 @@ export async function recordCheckHistory(results, env = process.env, options = {
     }, fetchImpl, apiUrl)
   }
 
-  const comments = await githubRequest(`${repository}/issues/${metricsIssue.number}/comments?per_page=100&sort=created&direction=desc`, token, {}, fetchImpl, apiUrl)
+  const comments = await githubRequestAllPages(`${repository}/issues/${metricsIssue.number}/comments?sort=created&direction=desc`, token, fetchImpl, apiUrl)
   const writes = []
   for (const result of included) {
     const marker = SERIES_MARKER(result.service, date)
