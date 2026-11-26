@@ -65,7 +65,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 
 O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar snapshots. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
 
-Os incidentes formam o histórico de disponibilidade; os snapshots diários formam o histórico de latência. Uma página pública de status com gráficos de uptime e badges pode ser adicionada posteriormente como front-end estático, consumindo esses registros.
+Os incidentes formam o histórico de disponibilidade; os snapshots de seis em seis horas formam o histórico de latência. Uma página pública de status com gráficos de uptime e badges pode ser adicionada posteriormente como front-end estático, consumindo esses registros.
 
 ## Execução automática e Render Free
 
