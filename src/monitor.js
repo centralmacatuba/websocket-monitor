@@ -5,6 +5,7 @@ import { checkTrystero } from './probes/trystero.js'
 import { checkEaglerRelay } from './probes/eaglercraft-relay.js'
 import { checkPeerJs } from './probes/peerjs.js'
 import { checkWisp } from './probes/wisp.js'
+import { publishGitHubHistory } from './github-history.js'
 
 const SERVICES = [
   { id: 'trystero', name: 'Mcraft P2P (Trystero)', urlKey: 'MCRAFT_TRYSTERO_WS_URL', enabledKey: 'TRYSTERO_MONITOR_ENABLED', intervalKey: 'TRYSTERO_MONITOR_INTERVAL_MINUTES', probe: checkTrystero },
@@ -60,13 +61,6 @@ async function runService(service, url, options) {
   safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${maxAttempts} tentativas`)
   return { ok: false, service: service.id, name: service.name, attempts: maxAttempts }
 }
-
-/**
- * Run all enabled, due service probes concurrently and isolate each result.
- * Services are selected by environment configuration and their own interval at this The GitHub schedule is minute-granular; service intervals are
- * calculated independently against UTC epoch minutes. Manual/local runs force
- * all enabled services to execute.
- */
 
 /**
  * Backwards-compatible transport-only monitor helper retained for the original
@@ -127,8 +121,6 @@ export async function runMonitor(env = process.env, options = {}) {
     }
 
     try {
-      // Reject malformed URLs before entering retries. PeerJS accepts HTTP(S)
-      // and WS(S) URLs; the other probes require WebSocket URLs.
       if (service.id === 'peerjs') {
         const parsed = new URL(url)
         if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
@@ -145,11 +137,23 @@ export async function runMonitor(env = process.env, options = {}) {
       return { service: service.id, name: service.name, status: 'misconfigured', ok: false }
     }
   }))
+
   const checked = results.filter((result) => result.status === undefined)
   const passed = checked.filter((result) => result.ok).length
   const failed = results.filter((result) => result.ok === false).length
   const skipped = results.filter((result) => ['disabled', 'not_due'].includes(result.status)).length
   safeLog(log, 'info', `\nResultado: ${passed}/${checked.length} verificações aprovadas; ${failed} falhas; ${skipped} ignoradas.`)
+
+  if (env.GITHUB_TOKEN && env.GITHUB_REPOSITORY) {
+    try {
+      await (options.publishHistory ?? publishGitHubHistory)(results, env, { now, fetchImpl: options.fetchImpl })
+      safeLog(log, 'info', '[HISTORY] Incidentes e histórico diário sincronizados com GitHub Issues.')
+    } catch {
+      // Do not hide the actual relay result or leak API response bodies/secrets.
+      safeLog(log, 'error', '[HISTORY] Não foi possível atualizar o histórico/notificações do GitHub.')
+    }
+  }
+
   return failed === 0 ? 0 : 1
 }
 
