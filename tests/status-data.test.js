@@ -71,4 +71,5 @@ test('uses the actual five-minute scheduler cadence for status freshness', () =>
   assert.equal(effectiveIntervalMinutes(11), 15)
   assert.equal(effectiveIntervalMinutes(60), 60)
   assert.equal(effectiveIntervalMinutes('invalid'), 5)
+  assert.equal(effectiveIntervalMinutes('invalid', 15), 15)
 })
