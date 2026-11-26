@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
-import { createEaglerPingPacket, parseEaglerPong } from '../src/probes/eaglercraft-relay.js'
+import { checkEaglerRelay, createEaglerPingPacket, parseEaglerPong } from '../src/probes/eaglercraft-relay.js'
 import { parsePeerServerUrl } from '../src/probes/peerjs.js'
 import { checkWisp } from '../src/probes/wisp.js'
 
@@ -80,4 +81,22 @@ test('rejects Wisp downgrade and negotiation timeout', async () => {
 
   class SilentConnection { close() {} }
   await assert.rejects(checkWisp('wss://wisp.example.test/wisp/', { timeoutMs: 5, ClientConnection: SilentConnection }), /timed out/)
+})
+
+test('converts synchronous Eagler ping send errors into probe failures', async () => {
+  class ThrowingSocket extends EventEmitter {
+    constructor() { super(); queueMicrotask(() => this.emit('open')) }
+    send() { throw new Error('simulated send failure') }
+    terminate() {}
+    close() {}
+  }
+  await assert.rejects(checkEaglerRelay('wss://relay.example.test', { WebSocketClass: ThrowingSocket }), /ping could not be sent/)
+})
+
+test('normalizes Wisp endpoint paths with a trailing slash', async () => {
+  class FakeClientConnection {
+    constructor(url) { assert.equal(url, 'wss://wisp.example.test/wisp/'); this.wisp_version = 2; queueMicrotask(() => this.onopen?.()) }
+    close() {}
+  }
+  await checkWisp('wss://wisp.example.test/wisp', { ClientConnection: FakeClientConnection })
 })
