@@ -1,3 +1,9 @@
+export function effectiveIntervalMinutes(value) {
+  const parsed = Number(value)
+  const valid = Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 5
+  return Math.max(5, Math.ceil(valid / 5) * 5)
+}
+
 export const WINDOWS = Object.freeze({ '24h': 24 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000, '30d': 30 * 24 * 60 * 60 * 1000 })
 
 export function calculateUptime(samples, now = Date.now(), windowMs = WINDOWS['24h'], excludedRanges = []) {
