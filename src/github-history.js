@@ -49,7 +49,7 @@ export async function syncIncidents(results, env = process.env, options = {}) {
   for (const result of results) {
     if (!result.service || result.status === 'disabled' || result.status === 'not_due' || result.status === 'misconfigured') continue
     const plannedMaintenance = (options.maintenances ?? []).some((item) =>
-      (item.service === result.service || item.service === 'all') &&
+      (item.service === result.service || item.service === 'all') && item.status !== 'completed' &&
       Date.parse(item.startsAt) <= now && Date.parse(item.endsAt) >= now,
     )
     if (plannedMaintenance && result.ok === false) continue
