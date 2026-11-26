@@ -5,7 +5,7 @@ const percent = (value) => value == null ? 'Coletando dados' : `${value.toFixed(
 const dateTime = (value) => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value)) + ' UTC' : '—'
 
 function renderOverall(status, services) {
-  const order = ['down', 'degraded', 'maintenance', 'unknown', 'operational']
+  const order = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
   const overall = order.find((candidate) => services.some((service) => service.status === candidate)) ?? status
   const copy = {
     operational: ['Todos os sistemas operacionais', 'Os serviços monitorados estão respondendo normalmente.'],
@@ -69,7 +69,7 @@ function renderMaintenances(items) {
 
 function renderIncidents(incidents) {
   $('#incident-count').textContent = `${incidents.length} registros`
-  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.serviceName ?? 'Serviço')} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
+  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></strong><p>${escapeHtml(item.serviceName ?? 'Serviço')} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
 }
 
 function renderBadges(badges) {
