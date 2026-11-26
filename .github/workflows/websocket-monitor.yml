@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: websocket-relay-monitor
@@ -41,6 +42,8 @@ jobs:
 
       - name: Check configured protocols
         env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           WS_MONITOR_ENABLED: ${{ vars.WS_MONITOR_ENABLED }}
           WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
           TRYSTERO_MONITOR_ENABLED: ${{ vars.TRYSTERO_MONITOR_ENABLED }}
