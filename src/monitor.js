@@ -27,8 +27,10 @@ export function parseBoolean(value, fallback) {
 }
 
 export function isIntervalDue(intervalMinutes, now = Date.now()) {
+  // GitHub scheduled workflows have a five-minute minimum cadence.
+  const effectiveInterval = Math.max(5, Math.ceil(intervalMinutes / 5) * 5)
   const minute = Math.floor(now / 60_000)
-  return minute % intervalMinutes === 0
+  return minute % effectiveInterval === 0
 }
 
 function safeLog(log, level, message) {
