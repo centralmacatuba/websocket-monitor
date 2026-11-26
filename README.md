@@ -37,7 +37,7 @@ Configure os toggles e intervalos em **Settings → Secrets and variables → Ac
 
 São 14 configurações: 2 globais e 3 para cada um dos 4 serviços. Se um toggle individual não for definido, o serviço é habilitado automaticamente quando seu secret de URL existe; sem URL, ele fica desabilitado por padrão. Se o toggle for explicitamente `true` sem URL, a execução reporta erro de configuração. Se o intervalo individual estiver vazio ou inválido, será herdado o intervalo global.
 
-Os intervalos são em minutos inteiros positivos. O workflow agenda um tick a cada minuto e o monitor decide individualmente se cada serviço está no seu minuto de execução. A agenda do GitHub Actions é best-effort e não garante precisão temporal. A execução manual força todos os serviços habilitados, ignorando os intervalos.
+Os intervalos são em minutos inteiros positivos. O workflow agenda um tick a cada cinco minutos (menor intervalo suportado pelo agendador do GitHub) e o monitor decide individualmente se cada serviço está no seu minuto de execução. Intervalos menores que cinco minutos são arredondados para cinco; os demais são arredondados para o próximo múltiplo de cinco. A agenda do GitHub Actions é best-effort e não garante precisão temporal. A execução manual força todos os serviços habilitados, ignorando os intervalos.
 
 Exemplos:
 - Definir `WS_MONITOR_ENABLED=false` pausa tudo.
