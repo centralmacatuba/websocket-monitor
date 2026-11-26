@@ -1,6 +1,8 @@
-export function effectiveIntervalMinutes(value) {
+export function effectiveIntervalMinutes(value, fallback = 5) {
   const parsed = Number(value)
-  const valid = Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 5
+  const fallbackValue = Number(fallback)
+  const validFallback = Number.isSafeInteger(fallbackValue) && fallbackValue > 0 ? fallbackValue : 5
+  const valid = Number.isSafeInteger(parsed) && parsed > 0 ? parsed : validFallback
   return Math.max(5, Math.ceil(valid / 5) * 5)
 }
 
