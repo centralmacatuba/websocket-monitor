@@ -9,7 +9,7 @@ import { publishGitHubHistory } from './github-history.js'
 
 const SERVICES = [
   { id: 'mcraft-p2p', name: 'Mcraft P2P (Trystero)', urlKey: 'MCRAFT_P2P_WS_URL', enabledKey: 'MCRAFT_P2P_MONITOR_ENABLED', intervalKey: 'MCRAFT_P2P_MONITOR_INTERVAL_MINUTES', probe: checkTrystero },
-  { id: 'eaglercraft-relay', name: 'EaglerCraft Relay', urlKey: 'EAGLERCRAFT_RELAY_WS_URL', enabledKey: 'EAGLERCRAFT_RELAY_MONITOR_ENABLED', intervalKey: 'EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES', probe: checkEaglerRelay },
+  { id: 'eaglercraft-relay', name: 'EaglerCraft Relay', urlKey: 'EAGLERCRAFT_RELAY_WS_URL', enabledKey: 'EAGLERCRAFT_RELAY_MONITOR_ENABLED', intervalKey: 'EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES', maxAttempts: 3, retryDelayMs: 20_000, probe: checkEaglerRelay },
   { id: 'mcraft-p2p-peerjs', name: 'Mcraft P2P (PeerJS legado)', urlKey: 'MCRAFT_P2P_PEERJS_WS_URL', enabledKey: 'MCRAFT_P2P_PEERJS_MONITOR_ENABLED', intervalKey: 'MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES', probe: checkPeerJs },
   { id: 'eaglercraft-wisp', name: 'EaglerCraft Wisp v2', urlKey: 'EAGLERCRAFT_WISP_WS_URL', enabledKey: 'EAGLERCRAFT_WISP_MONITOR_ENABLED', intervalKey: 'EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES', probe: checkWisp },
 ]
@@ -40,8 +40,8 @@ function safeLog(log, level, message) {
 
 async function runService(service, url, options) {
   const {
-    maxAttempts = 8,
-    retryDelayMs = 10_000,
+    maxAttempts = service.maxAttempts ?? 8,
+    retryDelayMs = service.retryDelayMs ?? 10_000,
     timeoutMs = 15_000,
     log = console,
     probe = service.probe,
