@@ -47,11 +47,11 @@ async function runService(service, url, options) {
     probe = service.probe,
   } = options
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  const startedAt = Date.now()\n  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const result = await probe(url, { timeoutMs })
       safeLog(log, 'info', `[UP] ${service.name}: transporte + protocolo OK (${result.elapsedMs ?? 0} ms; tentativa ${attempt}/${maxAttempts})`)
-      return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result }
+      return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result, elapsedMs: Date.now() - startedAt }
     } catch {
       safeLog(log, 'warn', `[DOWN] ${service.name}: falha de protocolo/transporte (tentativa ${attempt}/${maxAttempts})`)
       if (attempt < maxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, retryDelayMs))
@@ -59,7 +59,7 @@ async function runService(service, url, options) {
   }
 
   safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${maxAttempts} tentativas`)
-  return { ok: false, service: service.id, name: service.name, attempts: maxAttempts }
+  return { ok: false, service: service.id, name: service.name, attempts: maxAttempts, elapsedMs: Date.now() - startedAt }
 }
 
 /**
@@ -147,7 +147,7 @@ export async function runMonitor(env = process.env, options = {}) {
   if (env.GITHUB_TOKEN && env.GITHUB_REPOSITORY) {
     try {
       await (options.publishHistory ?? publishGitHubHistory)(results, env, { now, fetchImpl: options.fetchImpl })
-      safeLog(log, 'info', '[HISTORY] Incidentes e histórico diário sincronizados com GitHub Issues.')
+      safeLog(log, 'info', '[HISTORY] Incidentes e amostras de cada verificação sincronizados com GitHub Issues.')
     } catch {
       // Do not hide the actual relay result or leak API response bodies/secrets.
       safeLog(log, 'error', '[HISTORY] Não foi possível atualizar o histórico/notificações do GitHub.')
