@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { publishGitHubHistory, recordCheckHistory, syncIncidents } from '../src/github-history.js'
+import { METRICS_ISSUE_TITLE, findMetricsIssue } from '../src/metrics.js'
 
 function mockFetch(routes) {
   const calls = []
@@ -124,4 +125,10 @@ test('does not suppress incidents for a maintenance window marked completed', as
     maintenances: [{ service: 'eaglercraft-wisp', status: 'completed', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
   })
   assert.equal(calls.length, 2)
+})
+
+test('writer and status-page lookup share the same canonical metrics issue title', () => {
+  const issue = { number: 44, title: METRICS_ISSUE_TITLE }
+  assert.equal(findMetricsIssue([{ pull_request: {}, ...issue }, issue]), issue)
+  assert.equal(findMetricsIssue([{ title: '[WebSocket Monitor][Metrics] Histórico diário de saúde' }]), null)
 })
