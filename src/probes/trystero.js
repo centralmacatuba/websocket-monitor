@@ -8,6 +8,18 @@ import { RTCPeerConnection } from 'werift'
 const APP_ID = 'centralmacatuba-websocket-monitor'
 const workerPath = resolve(dirname(fileURLToPath(import.meta.url)), 'trystero-worker.js')
 
+function delay(ms) { return new Promise((resolveDelay) => setTimeout(resolveDelay, ms)) }
+
+async function stopChild(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return
+  const exited = new Promise((resolveExit) => child.once('exit', resolveExit))
+  if (child.connected) child.send({ type: 'stop' })
+  await Promise.race([exited, delay(1_000)])
+  if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
+  await Promise.race([exited, delay(1_000)])
+  if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+}
+
 function withTimeout(promise, timeoutMs, message) {
   let timer
   return Promise.race([
@@ -39,7 +51,6 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
   })
   let room
-  let settled = false
 
   try {
     const childReady = withTimeout(new Promise((resolveReady, rejectReady) => {
@@ -76,12 +87,9 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
 
     await Promise.all([room.ready, childReady])
     await ack
-    settled = true
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
     if (room) await room.leave().catch(() => {})
-    if (child.connected) child.send({ type: 'stop' })
-    if (child.exitCode === null) child.kill()
-    void settled
+    await stopChild(child)
   }
 }
