@@ -95,6 +95,22 @@ test('manual dispatch forces all enabled services regardless of interval', async
   assert.deepEqual(calls, ['trystero', 'eaglercraft', 'peerjs', 'wisp'])
 })
 
+test('runs enabled service probes concurrently', async () => {
+  const { log } = createLog()
+  const started = []
+  let release
+  const gate = new Promise((resolveGate) => { release = resolveGate })
+  const probes = Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => {
+    started.push(id)
+    if (started.length === 4) release()
+    await gate
+    return { elapsedMs: 1 }
+  }]))
+  const result = await runMonitor(urls, { log, force: true, probes })
+  assert.equal(result, 0)
+  assert.deepEqual(started, ['trystero', 'eaglercraft', 'peerjs', 'wisp'])
+})
+
 test('one protocol failure does not prevent the other enabled services', async () => {
   const { log } = createLog()
   const calls = []
