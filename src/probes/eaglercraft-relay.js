@@ -58,7 +58,9 @@ export function checkEaglerRelay(url, { timeoutMs = 15_000, WebSocketClass = Web
     }
     const fail = (error) => finish(error)
 
-    socket.once('open', () => socket.send(createEaglerPingPacket()))
+    socket.once('open', () => {
+      try { socket.send(createEaglerPingPacket()) } catch { fail(new Error('EaglerSPRelay ping could not be sent')) }
+    })
     socket.once('message', (data, isBinary) => {
       if (!isBinary) return fail(new Error('EaglerSPRelay returned a text frame'))
       try { finish(null, parseEaglerPong(data)) } catch (error) { fail(error) }
