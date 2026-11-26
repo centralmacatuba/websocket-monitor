@@ -55,18 +55,18 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
       rtcPolyfill: RTCPeerConnection,
       relayConfig: { urls: [url], warnOnRelayFailure: false },
     }, roomId)
-    const [send, onMessage] = room.makeAction('cm-monitor-health')
+    const action = room.makeAction('cm-monitor-health')
 
     const ack = withTimeout(new Promise((resolveAck, rejectAck) => {
       const timer = setTimeout(() => rejectAck(new Error('Trystero peer exchange timed out')), timeoutMs)
-      onMessage((message) => {
+      action.onMessage((message) => {
         if (message?.kind === 'ack' && message.nonce === nonce) {
           clearTimeout(timer)
           resolveAck()
         }
       })
       room.onUserJoin(async () => {
-        try { await send({ kind: 'probe', nonce }) } catch (error) { rejectAck(error) }
+        try { await action.send({ kind: 'probe', nonce }) } catch (error) { rejectAck(error) }
       })
       child.once('exit', (code) => {
         if (code !== 0) rejectAck(new Error('Trystero worker exited before acknowledgement'))
