@@ -126,3 +126,27 @@ test('one protocol failure does not prevent the other enabled services', async (
   assert.equal(code, 1)
   assert.deepEqual(calls, ['trystero', 'eaglercraft'])
 })
+
+test('publishes incident history after protocol checks when GitHub credentials are available', async () => {
+  const { log } = createLog()
+  let published
+  const code = await runMonitor({
+    ...urls,
+    PEERJS_MONITOR_ENABLED: 'false',
+    EAGLERCRAFT_RELAY_MONITOR_ENABLED: 'false',
+    TRYSTERO_MONITOR_ENABLED: 'false',
+    GITHUB_TOKEN: 'test-token',
+    GITHUB_REPOSITORY: 'owner/repo',
+  }, {
+    log,
+    force: true,
+    probes: { wisp: async () => ({ elapsedMs: 23 }) },
+    publishHistory: async (results, env, options) => {
+      published = { results, env, options }
+    },
+  })
+  assert.equal(code, 0)
+  assert.equal(published.results.filter((result) => result.ok).length, 1)
+  assert.equal(published.results.find((result) => result.service === 'wisp').elapsedMs, 23)
+  assert.equal(published.env.GITHUB_REPOSITORY, 'owner/repo')
+})
