@@ -156,8 +156,8 @@ test('metrics history lookup paginates issues and comments before creating a ser
   const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
   const commentPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `unrelated ${index}` }))
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open') && url.includes('page=1'), status: 200, body: issuePage },
-    { match: (url) => url.includes('/issues?state=open') && url.includes('page=2'), status: 200, body: [metricsIssue] },
+    { match: (url) => url.includes('/issues?state=open') && /[?&]page=1$/.test(url), status: 200, body: issuePage },
+    { match: (url) => url.includes('/issues?state=open') && /[?&]page=2$/.test(url), status: 200, body: [metricsIssue] },
     { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=1$/.test(url), status: 200, body: commentPage },
     { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=2$/.test(url), status: 200, body: [{ id: 900, body }] },
     { match: (url) => url.endsWith('/issues/comments/900'), status: 200, body: {} },
