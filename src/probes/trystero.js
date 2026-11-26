@@ -53,6 +53,7 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
       identity: 'none',
       maxUsers: 2,
       rtcPolyfill: RTCPeerConnection,
+      rtcConfig: { iceServers: [], iceUseDefaultStunServer: false },
       relayConfig: { urls: [url], warnOnRelayFailure: false },
     }, roomId)
     const action = room.makeAction('cm-monitor-health')
