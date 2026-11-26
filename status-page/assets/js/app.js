@@ -47,7 +47,8 @@ function renderUptime(services, history) {
   $('#uptime-history').innerHTML = services.map((service) => {
     const samples = history.services?.[service.id] ?? []
     const days = Array.from({ length: 30 }, (_, index) => {
-      const start = Date.now() - (29 - index + 1) * 86400_000
+      const todayUtc = new Date()
+      const start = Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate()) - (29 - index) * 86400_000
       const end = start + 86400_000
       const maintenance = (history.maintenances ?? []).filter((item) => (item.service === service.id || item.service === 'all') && item.excludeFromUptime !== false)
       const day = samples.filter((sample) => sample[0] >= start && sample[0] < end && !maintenance.some((item) => sample[0] >= Date.parse(item.startsAt) && sample[0] <= Date.parse(item.endsAt)))
@@ -55,7 +56,7 @@ function renderUptime(services, history) {
       const down = day.filter((sample) => sample[1] === 0).length
       const total = up + down
       const cls = !total ? 'empty' : down === 0 ? 'good' : up === 0 ? 'bad' : 'partial'
-      return `<span class="uptime-bar ${cls}" title="${new Date(start).toLocaleDateString('pt-BR')}: ${total ? ((up/total)*100).toFixed(2)+'% ('+total+' verificações)' : 'sem dados'}"></span>`
+      return `<span class="uptime-bar ${cls}" title="${new Date(start).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}: ${total ? ((up/total)*100).toFixed(2)+'% ('+total+' verificações)' : 'sem dados'}"></span>`
     }).join('')
     return `<article class="history-card"><div class="history-head"><strong>${escapeHtml(service.name)}</strong><span class="uptime-value">${percent(service.uptime?.['30d']?.uptime)}</span></div><div class="uptime-bars" aria-label="Disponibilidade diária nos últimos 30 dias">${days}</div><div class="history-legend"><span><i class="legend-dot" style="background:#238636"></i>100% das verificações OK</span><span><i class="legend-dot" style="background:#d29922"></i>Falhas registradas</span><span><i class="legend-dot" style="background:#343c46"></i>Sem amostras</span></div></article>`
   }).join('')
