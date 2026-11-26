@@ -19,5 +19,10 @@
     "peerjs": "1.5.5",
     "werift": "0.28.0",
     "ws": "8.22.0"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "bufferutil"
+    ]
   }
 }
