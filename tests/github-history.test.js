@@ -133,3 +133,39 @@ test('writer and status-page lookup share the same canonical metrics issue title
   assert.equal(findMetricsIssue([{ pull_request: {}, ...issue }, issue]), issue)
   assert.equal(findMetricsIssue([{ title: '[WebSocket Monitor][Metrics] Histórico diário de saúde' }]), null)
 })
+
+test('incident synchronization paginates before deciding an issue is absent', async () => {
+  const firstPage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
+  const active = { number: 501, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp' }
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open') && url.includes('page=1'), status: 200, body: firstPage },
+    { match: (url) => url.includes('/issues?state=open') && url.includes('page=2'), status: 200, body: [active] },
+    { match: (url) => url.endsWith('/issues/501/comments'), status: 201, body: {} },
+    { match: (url) => url.endsWith('/issues/501'), status: 200, body: {} },
+  ])
+  await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true }], env, { fetchImpl })
+  assert.equal(calls.length, 4)
+  assert.ok(calls[1].url.includes('page=2'))
+  assert.match(calls[2].url, /issues\/501\/comments$/)
+})
+
+test('metrics history lookup paginates issues and comments before creating a series', async () => {
+  const issuePage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
+  const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE }
+  const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
+  const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
+  const commentPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `unrelated ${index}` }))
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open') && url.includes('page=1'), status: 200, body: issuePage },
+    { match: (url) => url.includes('/issues?state=open') && url.includes('page=2'), status: 200, body: [metricsIssue] },
+    { match: (url) => url.includes('/issues/700/comments?') && url.includes('page=1'), status: 200, body: commentPage },
+    { match: (url) => url.includes('/issues/700/comments?') && url.includes('page=2'), status: 200, body: [{ id: 900, body }] },
+    { match: (url) => url.endsWith('/issues/comments/900'), status: 200, body: {} },
+  ])
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+    fetchImpl, now: Date.UTC(2026, 10, 25, 12, 5),
+  })
+  assert.equal(result.writes[0].action, 'updated')
+  assert.equal(calls.length, 5)
+  assert.ok(calls[3].url.includes('page=2'))
+})
