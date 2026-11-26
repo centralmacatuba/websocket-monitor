@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildServiceSummary, makeBadgeSvg } from '../src/status-data.js'
+import { buildServiceSummary, makeBadgeSvg, effectiveIntervalMinutes } from '../src/status-data.js'
+import { findMetricsIssue } from '../src/metrics.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const config = JSON.parse(await readFile(resolve(root, 'status-page/config.json'), 'utf8'))
@@ -33,7 +34,7 @@ const repository = config.repository
 if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error('Invalid repository in status-page/config.json')
 const repoPath = `/repos/${repository}`
 const issues = await allPages(`${repoPath}/issues?state=all&sort=updated&direction=desc`)
-const metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === config.metricsIssueTitle)
+const metricsIssue = findMetricsIssue(issues)
 const now = Date.now()
 const cutoff = now - 30 * 24 * 60 * 60 * 1000
 const samplesByService = Object.fromEntries(config.services.map((service) => [service.id, []]))
@@ -76,8 +77,9 @@ const maintenances = (maintenanceConfig.maintenances ?? []).map((item) => {
   }
   return item
 })
+const globalInterval = effectiveIntervalMinutes(process.env.WS_MONITOR_INTERVAL_MINUTES ?? config.expectedIntervalMinutes ?? 5)
 const services = config.services.map((service) => buildServiceSummary(
-  service,
+  { ...service, expectedIntervalMinutes: effectiveIntervalMinutes(process.env[service.intervalVariable] || globalInterval) },
   samplesByService[service.id],
   now,
   maintenances.filter((item) => item.service === service.id || item.service === 'all'),
