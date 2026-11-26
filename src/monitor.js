@@ -8,10 +8,10 @@ import { checkWisp } from './probes/wisp.js'
 import { publishGitHubHistory } from './github-history.js'
 
 const SERVICES = [
-  { id: 'trystero', name: 'Mcraft P2P (Trystero)', urlKey: 'MCRAFT_TRYSTERO_WS_URL', enabledKey: 'TRYSTERO_MONITOR_ENABLED', intervalKey: 'TRYSTERO_MONITOR_INTERVAL_MINUTES', probe: checkTrystero },
-  { id: 'eaglercraft', name: 'EaglerCraft Relay', urlKey: 'EAGLERCRAFT_RELAY_WS_URL', enabledKey: 'EAGLERCRAFT_RELAY_MONITOR_ENABLED', intervalKey: 'EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES', probe: checkEaglerRelay },
-  { id: 'peerjs', name: 'Mcraft P2P (PeerJS legado)', urlKey: 'PEERJS_WS_URL', enabledKey: 'PEERJS_MONITOR_ENABLED', intervalKey: 'PEERJS_MONITOR_INTERVAL_MINUTES', probe: checkPeerJs },
-  { id: 'wisp', name: 'EaglerCraft Wisp v2', urlKey: 'WISP_WS_URL', enabledKey: 'WISP_MONITOR_ENABLED', intervalKey: 'WISP_MONITOR_INTERVAL_MINUTES', probe: checkWisp },
+  { id: 'mcraft-p2p', name: 'Mcraft P2P (Trystero)', urlKey: 'MCRAFT_TRYSTERO_WS_URL', enabledKey: 'TRYSTERO_MONITOR_ENABLED', intervalKey: 'TRYSTERO_MONITOR_INTERVAL_MINUTES', probe: checkTrystero },
+  { id: 'eaglercraft-relay', name: 'EaglerCraft Relay', urlKey: 'EAGLERCRAFT_RELAY_WS_URL', enabledKey: 'EAGLERCRAFT_RELAY_MONITOR_ENABLED', intervalKey: 'EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES', probe: checkEaglerRelay },
+  { id: 'mcraft-p2p-peerjs', name: 'Mcraft P2P (PeerJS legado)', urlKey: 'PEERJS_WS_URL', enabledKey: 'PEERJS_MONITOR_ENABLED', intervalKey: 'PEERJS_MONITOR_INTERVAL_MINUTES', probe: checkPeerJs },
+  { id: 'eaglercraft-wisp', name: 'EaglerCraft Wisp v2', urlKey: 'WISP_WS_URL', enabledKey: 'WISP_MONITOR_ENABLED', intervalKey: 'WISP_MONITOR_INTERVAL_MINUTES', probe: checkWisp },
 ]
 
 export function positiveInteger(value, fallback) {
