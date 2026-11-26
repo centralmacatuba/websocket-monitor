@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { joinRoom } from '@trystero-p2p/ws-relay'
 import { RTCPeerConnection } from 'werift'
 
-const APP_ID = 'prismarine-web-client'
+const APP_ID = 'centralmacatuba-websocket-monitor'
 const workerPath = resolve(dirname(fileURLToPath(import.meta.url)), 'trystero-worker.js')
 
 function withTimeout(promise, timeoutMs, message) {
