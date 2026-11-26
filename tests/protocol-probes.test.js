@@ -7,6 +7,7 @@ import { checkEaglerRelay, createEaglerPingPacket, parseEaglerPong } from '../sr
 import { parsePeerServerUrl } from '../src/probes/peerjs.js'
 import { checkWisp } from '../src/probes/wisp.js'
 import { checkPeerJs } from '../src/probes/peerjs.js'
+import { checkTrystero } from '../src/probes/trystero.js'
 
 function javaUtf(value) {
   const bytes = Buffer.from(value, 'utf8')
@@ -203,4 +204,70 @@ test('PeerJS registration timeout still uninstalls WebRTC and destroys created p
   }), /registration timed out/)
   assert.ok(FakePeer.instances.every((peer) => peer.destroyed))
   assert.equal(uninstalled, 1)
+})
+
+function makeTrysteroHarness({ peerJoins = true, validAck = true, joinFails = false } = {}) {
+  const child = new EventEmitter()
+  child.exitCode = null
+  child.signalCode = null
+  child.connected = true
+  child.send = (message) => {
+    if (message?.type === 'stop') {
+      child.connected = false
+      child.exitCode = 0
+      queueMicrotask(() => child.emit('exit', 0, null))
+    }
+  }
+  child.kill = () => {
+    child.signalCode = 'SIGTERM'
+    queueMicrotask(() => child.emit('exit', null, 'SIGTERM'))
+  }
+  queueMicrotask(() => child.emit('message', { type: 'ready' }))
+  let left = 0
+  let actionMessage
+  const room = {
+    getSelf: async () => ['self'],
+    makeAction: () => ({
+      onMessage: (callback) => { actionMessage = callback },
+      send: async (message) => actionMessage?.({ kind: 'ack', nonce: validAck ? message.nonce : 'wrong-nonce' }),
+    }),
+    onUserJoin: (callback) => { if (peerJoins) queueMicrotask(() => callback('remote-peer')) },
+    leave: async () => { left += 1 },
+  }
+  return {
+    child,
+    room,
+    get leaveCount() { return left },
+    joinRoomImpl: () => { if (joinFails) throw new Error('join failed'); return room },
+    forkImpl: () => child,
+  }
+}
+
+test('Trystero validates the ephemeral peer ACK and cleans up both participants', async () => {
+  const harness = makeTrysteroHarness()
+  const result = await checkTrystero('wss://relay.example.test', { timeoutMs: 100, joinRoomImpl: harness.joinRoomImpl, forkImpl: harness.forkImpl })
+  assert.equal(result.peerExchange, true)
+  assert.equal(harness.leaveCount, 1)
+  assert.equal(harness.child.exitCode, 0)
+})
+
+test('Trystero fails when no peer joins and still cleans up', async () => {
+  const harness = makeTrysteroHarness({ peerJoins: false })
+  await assert.rejects(checkTrystero('wss://relay.example.test', { timeoutMs: 5, joinRoomImpl: harness.joinRoomImpl, forkImpl: harness.forkImpl }), /timed out/)
+  assert.equal(harness.leaveCount, 1)
+  assert.equal(harness.child.exitCode, 0)
+})
+
+test('Trystero rejects an invalid acknowledgement and cleans up', async () => {
+  const harness = makeTrysteroHarness({ validAck: false })
+  await assert.rejects(checkTrystero('wss://relay.example.test', { timeoutMs: 5, joinRoomImpl: harness.joinRoomImpl, forkImpl: harness.forkImpl }), /timed out/)
+  assert.equal(harness.leaveCount, 1)
+  assert.equal(harness.child.exitCode, 0)
+})
+
+test('Trystero cleans up the worker when room initialization fails', async () => {
+  const harness = makeTrysteroHarness({ joinFails: true })
+  await assert.rejects(checkTrystero('wss://relay.example.test', { timeoutMs: 100, joinRoomImpl: harness.joinRoomImpl, forkImpl: harness.forkImpl }), /join failed/)
+  assert.equal(harness.leaveCount, 0)
+  assert.equal(harness.child.exitCode, 0)
 })
