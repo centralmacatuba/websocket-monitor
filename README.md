@@ -74,7 +74,7 @@ Defina os secrets/variáveis correspondentes no ambiente antes de executar. Em u
 
 - Nenhuma URL ou credencial é escrita nos logs.
 - Os payloads de teste são pequenos, aleatórios e efêmeros.
-- As salas e peers Trystero/PeerJS são encerrados após o teste.
+- As salas e peers Trystero/PeerJS são encerrados após o teste. O appId do Trystero é exclusivo do monitor para impedir que o teste encontre salas reais.
 - EaglerSPRelay recebe somente um pacote ping oficial e não cria mundos.
 - Wisp negocia versão sem abrir streams para destinos externos.
 - O workflow mantém permissão `contents: read` e checkout com `persist-credentials: false`.
