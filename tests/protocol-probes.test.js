@@ -6,6 +6,7 @@ import { test } from 'node:test'
 import { checkEaglerRelay, createEaglerPingPacket, parseEaglerPong } from '../src/probes/eaglercraft-relay.js'
 import { parsePeerServerUrl } from '../src/probes/peerjs.js'
 import { checkWisp } from '../src/probes/wisp.js'
+import { checkPeerJs } from '../src/probes/peerjs.js'
 
 function javaUtf(value) {
   const bytes = Buffer.from(value, 'utf8')
@@ -128,4 +129,78 @@ test('completes an EaglerSPRelay v1 ping round-trip against a local WebSocket se
     await new Promise((resolve) => websocketServer.close(resolve))
     await new Promise((resolve) => server.close(resolve))
   }
+})
+
+function makeFakePeerHarness({ corruptPayload = false, openConnections = true, openPeers = true } = {}) {
+  class FakeConnection extends EventEmitter {
+    close() { this.closed = true }
+    send(data) {
+      if (this.remote) this.remote.emit('data', corruptPayload && data.toString().startsWith('cm-monitor:') ? Buffer.from('invalid') : data)
+    }
+  }
+  class FakePeer extends EventEmitter {
+    static instances = []
+    constructor() {
+      super()
+      this.id = `peer-${FakePeer.instances.length}`
+      FakePeer.instances.push(this)
+      if (openPeers) queueMicrotask(() => this.emit('open', this.id))
+    }
+    connect(receiverId) {
+      const receiver = FakePeer.instances.find((peer) => peer.id === receiverId)
+      const outgoing = new FakeConnection()
+      const incoming = new FakeConnection()
+      outgoing.remote = incoming
+      incoming.remote = outgoing
+      this.outgoing = outgoing
+      receiver.incoming = incoming
+      if (openConnections) queueMicrotask(() => {
+        receiver.emit('connection', incoming)
+        incoming.emit('open')
+        outgoing.emit('open')
+      })
+      return outgoing
+    }
+    destroy() { this.destroyed = true }
+  }
+  return { FakePeer, FakeConnection }
+}
+
+test('PeerJS completes registration and raw binary ACK with injected clients', async () => {
+  const { FakePeer } = makeFakePeerHarness()
+  let uninstalled = 0
+  const result = await checkPeerJs('https://peer.example.test/peerjs', {
+    PeerClass: FakePeer,
+    installPolyfillImpl: () => () => { uninstalled += 1 },
+    timeoutMs: 100,
+  })
+  assert.equal(result.registration, true)
+  assert.equal(result.rawExchange, true)
+  assert.equal(FakePeer.instances.length, 2)
+  assert.ok(FakePeer.instances.every((peer) => peer.destroyed))
+  assert.equal(uninstalled, 1)
+})
+
+test('PeerJS rejects invalid raw payloads and always destroys peers', async () => {
+  const { FakePeer } = makeFakePeerHarness({ corruptPayload: true })
+  let uninstalled = 0
+  await assert.rejects(checkPeerJs('https://peer.example.test/peerjs', {
+    PeerClass: FakePeer,
+    installPolyfillImpl: () => () => { uninstalled += 1 },
+    timeoutMs: 100,
+  }), /payload mismatch/)
+  assert.ok(FakePeer.instances.every((peer) => peer.destroyed))
+  assert.equal(uninstalled, 1)
+})
+
+test('PeerJS registration timeout still uninstalls WebRTC and destroys created peers', async () => {
+  const { FakePeer } = makeFakePeerHarness({ openPeers: false })
+  let uninstalled = 0
+  await assert.rejects(checkPeerJs('https://peer.example.test/peerjs', {
+    PeerClass: FakePeer,
+    installPolyfillImpl: () => () => { uninstalled += 1 },
+    timeoutMs: 5,
+  }), /registration timed out/)
+  assert.ok(FakePeer.instances.every((peer) => peer.destroyed))
+  assert.equal(uninstalled, 1)
 })
