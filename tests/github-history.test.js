@@ -138,8 +138,8 @@ test('incident synchronization paginates before deciding an issue is absent', as
   const firstPage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
   const active = { number: 501, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp' }
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open') && url.includes('page=1'), status: 200, body: firstPage },
-    { match: (url) => url.includes('/issues?state=open') && url.includes('page=2'), status: 200, body: [active] },
+    { match: (url) => url.includes('/issues?state=open') && /[?&]page=1$/.test(url), status: 200, body: firstPage },
+    { match: (url) => url.includes('/issues?state=open') && /[?&]page=2$/.test(url), status: 200, body: [active] },
     { match: (url) => url.endsWith('/issues/501/comments'), status: 201, body: {} },
     { match: (url) => url.endsWith('/issues/501'), status: 200, body: {} },
   ])
@@ -158,8 +158,8 @@ test('metrics history lookup paginates issues and comments before creating a ser
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open') && url.includes('page=1'), status: 200, body: issuePage },
     { match: (url) => url.includes('/issues?state=open') && url.includes('page=2'), status: 200, body: [metricsIssue] },
-    { match: (url) => url.includes('/issues/700/comments?') && url.includes('page=1'), status: 200, body: commentPage },
-    { match: (url) => url.includes('/issues/700/comments?') && url.includes('page=2'), status: 200, body: [{ id: 900, body }] },
+    { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=1$/.test(url), status: 200, body: commentPage },
+    { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=2$/.test(url), status: 200, body: [{ id: 900, body }] },
     { match: (url) => url.endsWith('/issues/comments/900'), status: 200, body: {} },
   ])
   const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
