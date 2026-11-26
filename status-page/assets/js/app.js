@@ -21,7 +21,7 @@ function renderServices(services) {
   $('#service-count').textContent = `${services.length} serviços`
   $('#services').innerHTML = services.map((service) => {
     const metrics = service.uptime ?? {}
-    const values = ['24h', '7d', '30d'].map((key) => `<div class="metric"><strong>${percent(metrics[key]?.uptime)}</strong><span>Uptime ${key}</span></div>`).join('')
+    const values = ['24h', '7d', '30d'].map((key) => `<div class="metric"><strong>${percent(metrics[key]?.uptime)}</strong><span>Uptime ${key} · ${metrics[key]?.checks ?? 0} checks</span></div>`).join('')
     const latency = service.latencyMs == null ? '—' : `${number(service.latencyMs)} ms`
     return `<article class="service-card"><div class="service-top"><span class="service-name"> ${escapeHtml(service.name)}</span><span class="status-pill ${service.status}">${statusLabels[service.status] ?? statusLabels.unknown}</span></div><div class="service-metrics">${values}</div><div class="service-foot"><span>Latência atual: ${latency}</span><span>${service.uptime?.['24h']?.checks ?? 0} verificações / 24h</span></div><div class="service-foot"><span>Última verificação</span><span>${dateTime(service.lastCheckedAt)}</span></div></article>`
   }).join('')
@@ -49,7 +49,8 @@ function renderUptime(services, history) {
     const days = Array.from({ length: 30 }, (_, index) => {
       const start = Date.now() - (29 - index + 1) * 86400_000
       const end = start + 86400_000
-      const day = samples.filter((sample) => sample[0] >= start && sample[0] < end)
+      const maintenance = (history.maintenances ?? []).filter((item) => (item.service === service.id || item.service === 'all') && item.excludeFromUptime !== false)
+      const day = samples.filter((sample) => sample[0] >= start && sample[0] < end && !maintenance.some((item) => sample[0] >= Date.parse(item.startsAt) && sample[0] <= Date.parse(item.endsAt)))
       const up = day.filter((sample) => sample[1] === 1).length
       const down = day.filter((sample) => sample[1] === 0).length
       const total = up + down
@@ -62,7 +63,7 @@ function renderUptime(services, history) {
 
 function renderMaintenances(items) {
   const now = Date.now()
-  const visible = items.filter((item) => Date.parse(item.endsAt) >= now).sort((a,b) => Date.parse(a.startsAt)-Date.parse(b.startsAt))
+  const visible = items.filter((item) => item.status !== 'completed' && Date.parse(item.endsAt) >= now).sort((a,b) => Date.parse(a.startsAt)-Date.parse(b.startsAt))
   $('#maintenances').innerHTML = visible.length ? visible.map((item) => `<article class="notice-card"><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.description ?? '')}</p><p> ${escapeHtml(item.service === 'all' ? 'Todos os serviços' : item.service)} · ${dateTime(item.startsAt)} – ${dateTime(item.endsAt)}</p></div><span class="status-pill maintenance">${Date.parse(item.startsAt) <= now ? 'Em andamento' : 'Programada'}</span></article>`).join('') : '<p class="empty">Nenhuma manutenção programada publicada.</p>'
 }
 
