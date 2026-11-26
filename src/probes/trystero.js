@@ -89,7 +89,7 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
     await ack
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
-    if (room) await room.leave().catch(() => {})
+    if (room) { try { await room.leave() } catch {} }
     await stopChild(child)
   }
 }
