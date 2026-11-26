@@ -112,3 +112,16 @@ test('persists check samples even when incident notification creation fails', as
   )
   assert.ok(calls.some((call) => call.url.endsWith('/issues/18/comments')))
 })
+
+test('does not suppress incidents for a maintenance window marked completed', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 19 } },
+  ])
+  await syncIncidents([{ service: 'wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
+    fetchImpl,
+    now: Date.UTC(2026, 10, 25, 12),
+    maintenances: [{ service: 'wisp', status: 'completed', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
+  })
+  assert.equal(calls.length, 2)
+})
