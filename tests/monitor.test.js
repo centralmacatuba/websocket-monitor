@@ -55,10 +55,10 @@ test('per-service switches and URL presence define safe defaults', async () => {
     log,
     force: true,
     maxAttempts: 1,
-    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
+    probes: Object.fromEntries(['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
   })
   assert.equal(code, 1)
-  assert.deepEqual(calls, ['trystero', 'eaglercraft'])
+  assert.deepEqual(calls, ['mcraft-p2p', 'eaglercraft-relay'])
 })
 
 test('uses the global interval when a service interval is not set', async () => {
@@ -74,10 +74,10 @@ test('uses the global interval when a service interval is not set', async () => 
   }, {
     log,
     now: Date.UTC(2026, 10, 25, 12, 10),
-    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
+    probes: Object.fromEntries(['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
   })
   assert.equal(code, 0)
-  assert.deepEqual(calls, ['eaglercraft'])
+  assert.deepEqual(calls, ['eaglercraft-relay'])
 })
 
 test('manual dispatch forces all enabled services regardless of interval', async () => {
@@ -89,10 +89,10 @@ test('manual dispatch forces all enabled services regardless of interval', async
     WS_MONITOR_INTERVAL_MINUTES: '90',
   }, {
     log,
-    probes: Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
+    probes: Object.fromEntries(['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
   })
   assert.equal(code, 0)
-  assert.deepEqual(calls, ['trystero', 'eaglercraft', 'peerjs', 'wisp'])
+  assert.deepEqual(calls, ['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'])
 })
 
 test('runs enabled service probes concurrently', async () => {
@@ -100,7 +100,7 @@ test('runs enabled service probes concurrently', async () => {
   const started = []
   let release
   const gate = new Promise((resolveGate) => { release = resolveGate })
-  const probes = Object.fromEntries(['trystero', 'eaglercraft', 'peerjs', 'wisp'].map((id) => [id, async () => {
+  const probes = Object.fromEntries(['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'].map((id) => [id, async () => {
     started.push(id)
     if (started.length === 4) release()
     await gate
@@ -108,7 +108,7 @@ test('runs enabled service probes concurrently', async () => {
   }]))
   const result = await runMonitor(urls, { log, force: true, probes })
   assert.equal(result, 0)
-  assert.deepEqual(started, ['trystero', 'eaglercraft', 'peerjs', 'wisp'])
+  assert.deepEqual(started, ['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'])
 })
 
 test('one protocol failure does not prevent the other enabled services', async () => {
@@ -124,7 +124,7 @@ test('one protocol failure does not prevent the other enabled services', async (
     },
   })
   assert.equal(code, 1)
-  assert.deepEqual(calls, ['trystero', 'eaglercraft'])
+  assert.deepEqual(calls, ['mcraft-p2p', 'eaglercraft-relay'])
 })
 
 test('publishes incident history after protocol checks when GitHub credentials are available', async () => {
