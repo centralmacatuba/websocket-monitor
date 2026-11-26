@@ -78,27 +78,22 @@ export async function runMonitor(env = process.env, options = {}) {
   const eventName = env.GITHUB_EVENT_NAME
   const force = options.force ?? (!eventName || eventName === 'workflow_dispatch')
   const now = options.now ?? Date.now()
-  const results = []
-
-  for (const service of SERVICES) {
+  const results = await Promise.all(SERVICES.map(async (service) => {
     const url = env[service.urlKey]
     const enabled = parseBoolean(env[service.enabledKey], Boolean(url))
     if (!enabled) {
-      results.push({ service: service.id, name: service.name, status: 'disabled' })
       safeLog(log, 'info', `[SKIP] ${service.name}: desativado.`)
-      continue
+      return { service: service.id, name: service.name, status: 'disabled' }
     }
 
     const interval = positiveInteger(env[service.intervalKey], globalInterval)
     if (!force && !isIntervalDue(interval, now)) {
-      results.push({ service: service.id, name: service.name, status: 'not_due', intervalMinutes: interval })
-      continue
+      return { service: service.id, name: service.name, status: 'not_due', intervalMinutes: interval }
     }
 
     if (!url) {
-      results.push({ service: service.id, name: service.name, status: 'misconfigured', ok: false })
       safeLog(log, 'error', `[CONFIG] ${service.name}: URL não configurada; serviço habilitado.`)
-      continue
+      return { service: service.id, name: service.name, status: 'misconfigured', ok: false }
     }
 
     try {
@@ -114,17 +109,16 @@ export async function runMonitor(env = process.env, options = {}) {
       }
 
       const probe = options.probes?.[service.id] ?? options.probe ?? service.probe
-      results.push(await runService(service, url, { ...options, log, probe }))
+      return await runService(service, url, { ...options, log, probe })
     } catch {
-      results.push({ service: service.id, name: service.name, status: 'misconfigured', ok: false })
       safeLog(log, 'error', `[CONFIG] ${service.name}: URL inválida.`)
+      return { service: service.id, name: service.name, status: 'misconfigured', ok: false }
     }
-  }
-
+  }))
   const checked = results.filter((result) => result.status === undefined)
   const passed = checked.filter((result) => result.ok).length
   const failed = results.filter((result) => result.ok === false).length
-  const skipped = results.length - checked.length
+  const skipped = results.filter((result) => ['disabled', 'not_due'].includes(result.status)).length
   safeLog(log, 'info', `\nResultado: ${passed}/${checked.length} verificações aprovadas; ${failed} falhas; ${skipped} ignoradas.`)
   return failed === 0 ? 0 : 1
 }
