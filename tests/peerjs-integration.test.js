@@ -57,10 +57,7 @@ test('PeerJS probe completes a real raw-data round-trip against the official loc
 }, async () => {
   const port = await getAvailablePort()
   const baseUrl = `http://127.0.0.1:${port}/peerjs`
-  const child = spawn('pnpm', [
-    'dlx',
-    '--package=peer@1.0.2',
-    'peerjs',
+  const child = spawn('peerjs', [
     '--port', String(port),
     '--key', 'peerjs',
     '--path', '/peerjs',
