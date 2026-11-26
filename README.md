@@ -60,7 +60,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 - Quando um probe falha após todas as tentativas, abre uma issue `[WebSocket Monitor][DOWN]` para aquele serviço. A issue funciona como alerta e registro do início do incidente.
 - Enquanto o serviço continuar indisponível, a mesma issue permanece aberta; verificações subsequentes não criam alertas duplicados.
 - Quando o probe volta a funcionar, o monitor comenta a recuperação e fecha a issue. O histórico de issues preserva início, recuperação e duração do incidente.
-- Uma issue única de métricas recebe um snapshot diário (UTC) de status, latência do probe e tentativas. O registro é idempotente por dia.
+- Uma issue única de métricas recebe snapshots de status, latência do probe e tentativas a cada seis horas (UTC), por serviço. Cada janela é idempotente e serviços com intervalos diferentes são registrados independentemente.
 - As notificações nativas do GitHub dependem das preferências de notificação/inscrição de cada usuário. Integrações externas (Discord, Slack ou e-mail) podem ser adicionadas depois sem mudar os probes.
 
 O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar snapshots. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
