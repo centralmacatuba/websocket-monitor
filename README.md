@@ -55,7 +55,7 @@ Não inclua credenciais ou tokens nas URLs. Os logs não imprimem endpoints, pay
 
 ## Execução automática e Render Free
 
-O workflow roda a cada minuto para permitir intervalos independentes; o processo só abre conexões quando o intervalo de cada serviço vence. O padrão permanece cinco minutos. Cada ciclo usa até oito tentativas, com dez segundos entre tentativas, para tolerar cold starts. Isso pode acordar serviços no Render Free e manter atividade, consumindo horas de instância; não remove limites do plano gratuito. O agendamento do GitHub é best-effort.
+O workflow roda a cada cinco minutos (menor cadência suportada pelo agendador do GitHub Actions); o processo só abre conexões quando o intervalo de cada serviço vence. O padrão permanece cinco minutos. Cada ciclo usa até oito tentativas, com dez segundos entre tentativas, para tolerar cold starts. Isso pode acordar serviços no Render Free e manter atividade, consumindo horas de instância; não remove limites do plano gratuito. O agendamento do GitHub é best-effort.
 
 ## Execução local
 
@@ -82,4 +82,8 @@ Defina os secrets/variáveis correspondentes no ambiente antes de executar. Em u
 
 ## Licença
 
-Nenhuma licença de redistribuição foi declarada neste repositório.
+Este projeto é distribuído sob a licença [MIT](LICENSE). A licença do projeto não substitui nem altera as licenças das dependências de terceiros; consulte os metadados de cada pacote e seus avisos aplicáveis.
+
+## Política de segurança
+
+Consulte [SECURITY.md](SECURITY.md) para saber como reportar vulnerabilidades de forma privada.
