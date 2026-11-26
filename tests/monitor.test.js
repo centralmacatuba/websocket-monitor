@@ -119,8 +119,8 @@ test('one protocol failure does not prevent the other enabled services', async (
     force: true,
     maxAttempts: 1,
     probes: {
-      'mcraft-p2p': async () => { calls.push('trystero'); throw new Error('private endpoint should not be logged') },
-      'eaglercraft-relay': async () => { calls.push('eaglercraft'); return { elapsedMs: 1 } },
+      'mcraft-p2p': async () => { calls.push('mcraft-p2p'); throw new Error('private endpoint should not be logged') },
+      'eaglercraft-relay': async () => { calls.push('eaglercraft-relay'); return { elapsedMs: 1 } },
     },
   })
   assert.equal(code, 1)
