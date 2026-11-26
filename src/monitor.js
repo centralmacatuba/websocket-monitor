@@ -60,7 +60,7 @@ async function runService(service, url, options) {
   }
 
   safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${maxAttempts} tentativas`)
-  return { ok: false, service: service.id, name: service.name, attempts: maxAttempts, elapsedMs: Date.now() - startedAt }
+  return { ok: false, service: service.id, name: service.name, attempts: maxAttempts, elapsedMs: null }
 }
 
 /**
