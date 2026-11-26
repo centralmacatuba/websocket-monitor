@@ -61,7 +61,18 @@ for (const id of Object.keys(samplesByService)) {
   samplesByService[id] = [...unique.values()].sort((a, b) => a[0] - b[0])
 }
 
-const maintenances = (maintenanceConfig.maintenances ?? []).filter((item) => item && item.startsAt && item.endsAt)
+const validServiceIds = new Set([...config.services.map((service) => service.id), 'all'])
+const maintenances = (maintenanceConfig.maintenances ?? []).map((item) => {
+  const startsAt = Date.parse(item?.startsAt)
+  const endsAt = Date.parse(item?.endsAt)
+  if (!item || !validServiceIds.has(item.service) || !Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt >= endsAt) {
+    throw new Error('Invalid maintenance entry in status-page/maintenance.json')
+  }
+  if (item.excludeFromUptime !== undefined && typeof item.excludeFromUptime !== 'boolean') {
+    throw new Error('Maintenance excludeFromUptime must be a boolean')
+  }
+  return item
+})
 const services = config.services.map((service) => buildServiceSummary(
   service,
   samplesByService[service.id],
@@ -99,6 +110,7 @@ const history = {
   generatedAt: new Date(now).toISOString(),
   window: '30d',
   services: samplesByService,
+  maintenances,
 }
 const incidents = issues
   .filter((issue) => !issue.pull_request && issue.title?.startsWith('[WebSocket Monitor][DOWN]'))
