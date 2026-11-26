@@ -26,7 +26,16 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
   const nonce = randomBytes(18).toString('hex')
   const startedAt = Date.now()
   const child = fork(workerPath, [], {
-    env: { ...process.env, CM_TRYSTERO_ROLE: 'responder', CM_TRYSTERO_URL: url, CM_TRYSTERO_ROOM: roomId, CM_TRYSTERO_TIMEOUT: String(timeoutMs) },
+    env: {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      NODE_OPTIONS: process.env.NODE_OPTIONS,
+      NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS,
+      CM_TRYSTERO_ROLE: 'responder',
+      CM_TRYSTERO_URL: url,
+      CM_TRYSTERO_ROOM: roomId,
+      CM_TRYSTERO_TIMEOUT: String(timeoutMs),
+    },
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
   })
   let room
