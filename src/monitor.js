@@ -67,6 +67,36 @@ async function runService(service, url, options) {
  * calculated independently against UTC epoch minutes. Manual/local runs force
  * all enabled services to execute.
  */
+
+/**
+ * Backwards-compatible transport-only monitor helper retained for the original
+ * WebSocket unit/integration tests and external local diagnostics.
+ */
+export async function monitorTarget(target, options = {}) {
+  const {
+    maxAttempts = 8,
+    retryDelayMs = 10_000,
+    connectTimeoutMs = 15_000,
+    pongTimeoutMs = 15_000,
+    log = console,
+    check = checkWebSocket,
+  } = options
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const result = await check(target.url, { connectTimeoutMs, pongTimeoutMs })
+      log.info?.(`[UP] ${target.name}: WebSocket Ping/Pong OK (${result.elapsedMs} ms; tentativa ${attempt}/${maxAttempts})`)
+      return { ...result, ok: true, attempts: attempt }
+    } catch {
+      log.warn?.(`[DOWN] ${target.name}: WebSocket indisponível (tentativa ${attempt}/${maxAttempts})`)
+      if (attempt < maxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, retryDelayMs))
+    }
+  }
+
+  log.error?.(`[FAIL] ${target.name}: indisponível após ${maxAttempts} tentativas`)
+  return { ok: false, attempts: maxAttempts }
+}
+
 export async function runMonitor(env = process.env, options = {}) {
   const log = options.log ?? console
   if (!parseBoolean(env.WS_MONITOR_ENABLED, true)) {
