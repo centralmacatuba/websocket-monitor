@@ -80,7 +80,7 @@ A publicação é acionada quando o workflow de monitoramento termina (inclusive
 - **Sem dados:** se não houver amostras no período, o valor é exibido como “Coletando dados”, nunca como 100%.
 - **Amostras reais:** somente probes executados entram no cálculo. Serviços em intervalos diferentes não recebem verificações artificiais nos minutos em que não estavam programados.
 - **Manutenções:** por padrão, verificações dentro de uma janela de manutenção são excluídas do cálculo de uptime. Use `"excludeFromUptime": false` para manter essas verificações no denominador.
-- **Latência:** mede a duração total do probe de protocolo, incluindo tentativas/retries; a página mostra histórico das últimas 24 horas, média e P95.
+- **Latência:** mede a duração do probe de protocolo bem-sucedido, sem somar o tempo de retries; a página mostra histórico das últimas 24 horas, média e P95. Verificações que falham contam no uptime, mas não são tratadas como medições de latência.
 - **Dados antigos:** se a última amostra ultrapassar três intervalos esperados (com mínimo de 15 minutos), o serviço aparece como “Sem dados recentes”, em vez de continuar sendo exibido como operacional.
 - **Retenção visual:** os gráficos e agregações da página usam as amostras dos últimos 30 dias. Os comentários históricos permanecem na issue de métricas.
 
