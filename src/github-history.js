@@ -109,7 +109,7 @@ export async function recordDailySnapshot(results, env = process.env, options = 
     ...rows,
     '',
     '_Latency is the protocol probe duration, not only the WebSocket handshake time._',
-  ].join('\\n')
+  ].join('\n')
   const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
   let metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === METRICS_TITLE)
 
@@ -134,20 +134,6 @@ export async function recordDailySnapshot(results, env = process.env, options = 
   } else {
     const previousDate = metricsIssue.body?.match(/<!-- websocket-monitor-last-daily:(\d{4}-\d{2}-\d{2}) -->/)?.[1]
     if (previousDate === date) return { skipped: true, reason: 'already-recorded' }
-
-    const rows = results
-      .filter((result) => result.service && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
-      .map((result) => `| ${result.name} | ${result.ok ? 'UP' : 'DOWN'} | ${Number.isFinite(result.elapsedMs) ? `${Math.round(result.elapsedMs)} ms` : '—'} | ${result.attempts ?? '—'} |`)
-
-    const snapshot = [
-      `## ${date} (UTC)`,
-      '',
-      '| Service | Status | Probe latency | Attempts |',
-      '|---|---|---:|---:|',
-      ...rows,
-      '',
-      '_Latency is the protocol probe duration, not only the WebSocket handshake time._',
-    ].join('\n')
 
     await githubRequest(`${repository}/issues/${metricsIssue.number}/comments`, token, {
       method: 'POST',
