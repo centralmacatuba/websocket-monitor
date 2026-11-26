@@ -11,7 +11,7 @@ function cleanup() {
   if (!cleanupPromise) {
     cleanupPromise = (async () => {
       clearTimeout(timer)
-      if (room) await room.leave().catch(() => {})
+      if (room) { try { await room.leave() } catch {} }
     })()
   }
   return cleanupPromise
