@@ -58,7 +58,7 @@ function renderUptime(services, history) {
       const cls = !total ? 'empty' : down === 0 ? 'good' : up === 0 ? 'bad' : 'partial'
       return `<span class="uptime-bar ${cls}" title="${new Date(start).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}: ${total ? ((up/total)*100).toFixed(2)+'% ('+total+' verificações)' : 'sem dados'}"></span>`
     }).join('')
-    return `<article class="history-card"><div class="history-head"><strong>${escapeHtml(service.name)}</strong><span class="uptime-value">${percent(service.uptime?.['30d']?.uptime)}</span></div><div class="uptime-bars" aria-label="Disponibilidade diária nos últimos 30 dias">${days}</div><div class="history-legend"><span><i class="legend-dot" style="background:#238636"></i>100% das verificações OK</span><span><i class="legend-dot" style="background:#d29922"></i>Falhas registradas</span><span><i class="legend-dot" style="background:#343c46"></i>Sem amostras</span></div></article>`
+    return `<article class="history-card"><div class="history-head"><strong>${escapeHtml(service.name)}</strong><span class="uptime-value">${percent(service.uptime?.['30d']?.uptime)}</span></div><div class="uptime-bars" role="img" aria-label="Disponibilidade diária de ${escapeHtml(service.name)} nos últimos 30 dias">${days}</div><div class="history-legend"><span><i class="legend-dot" style="background:#238636"></i>100% das verificações OK</span><span><i class="legend-dot" style="background:#d29922"></i>Falhas registradas</span><span><i class="legend-dot" style="background:#343c46"></i>Sem amostras</span></div></article>`
   }).join('')
 }
 
