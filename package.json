@@ -20,5 +20,6 @@
     "werift": "0.28.0",
     "ws": "8.22.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "pnpm@12.12.1"
 }
