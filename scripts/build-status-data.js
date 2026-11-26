@@ -79,7 +79,7 @@ const services = config.services.map((service) => buildServiceSummary(
   now,
   maintenances.filter((item) => item.service === service.id || item.service === 'all'),
 ))
-const priority = ['down', 'degraded', 'maintenance', 'unknown', 'operational']
+const priority = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
 const overallStatus = priority.find((status) => services.some((service) => service.status === status)) ?? 'unknown'
 const badgeColor = { operational: '#238636', degraded: '#9a6700', down: '#cf222e', maintenance: '#0969da', unknown: '#6e7781' }
 const badgeText = { operational: 'operational', degraded: 'degraded', down: 'down', maintenance: 'maintenance', unknown: 'no data' }
