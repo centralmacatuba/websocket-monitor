@@ -61,7 +61,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 - Enquanto o serviço continuar indisponível, a mesma issue permanece aberta; verificações subsequentes não criam alertas duplicados.
 - Quando o probe volta a funcionar, o monitor comenta a recuperação e fecha a issue. O histórico de issues preserva início, recuperação e duração do incidente.
 - Cada verificação de protocolo efetivamente executada é registrada como uma amostra compacta em um comentário diário por serviço na issue de métricas. Cada amostra contém timestamp, resultado, duração total do probe e número de tentativas.
-- As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura.
+- As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura.
 - Janelas de manutenção suprimem a abertura de novos incidentes para os serviços abrangidos. Incidentes já abertos continuam sendo atualizados e fechados normalmente quando houver recuperação.
 
 O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar amostras. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
@@ -150,7 +150,7 @@ O workflow roda a cada cinco minutos (menor cadência suportada pelo agendador d
 
 ## Execução local
 
-Requisitos: Node.js 22+ e pnpm 12.12.1. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais.
+Requisitos: Node.js 22+ e pnpm 12.12.1. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais. O package.json fixa packageManager em pnpm@12.12.1. Para execução local, copie .env.example para .env e preencha somente os endpoints necessários; não versione .env nem credenciais.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -178,6 +178,11 @@ Este projeto é distribuído sob a licença [MIT](LICENSE). A licença do projet
 ## Política de segurança
 
 Consulte [SECURITY.md](SECURITY.md) para saber como reportar vulnerabilidades de forma privada.
+
+
+### Sincronização manual do lockfile
+
+O workflow Sync pnpm lockfile é acionado somente por execução manual (workflow_dispatch). Após alterar dependências no package.json, execute-o na branch de trabalho e revise o diff de pnpm-lock.yaml antes de continuar; ele não dispara automaticamente em cada push.
 
 
 ### Sincronização manual do lockfile
