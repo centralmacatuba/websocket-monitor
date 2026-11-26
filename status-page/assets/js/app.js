@@ -1,5 +1,5 @@
 const $ = (selector) => document.querySelector(selector) 
-const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\"', '&quot;').replaceAll(\"'\", '&#39;')
+const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
 const statusLabels = { operational: 'Operacional', degraded: 'Desempenho degradado', down: 'Indisponível', maintenance: 'Em manutenção', unknown: 'Sem dados recentes' }
 const number = (value) => value == null ? '—' : new Intl.NumberFormat('pt-BR').format(value)
 const percent = (value) => value == null ? 'Coletando dados' : `${value.toFixed(3).replace('.', ',')}%`
