@@ -5,6 +5,22 @@ const url = process.env.CM_TRYSTERO_URL
 const roomId = process.env.CM_TRYSTERO_ROOM
 const timeoutMs = Number(process.env.CM_TRYSTERO_TIMEOUT) || 15_000
 let room
+let cleanupPromise
+
+function cleanup() {
+  if (!cleanupPromise) {
+    cleanupPromise = (async () => {
+      clearTimeout(timer)
+      if (room) await room.leave().catch(() => {})
+    })()
+  }
+  return cleanupPromise
+}
+
+const timer = setTimeout(async () => {
+  await cleanup()
+  process.exit(2)
+}, timeoutMs)
 
 async function main() {
   room = joinRoom({
@@ -16,28 +32,25 @@ async function main() {
     relayConfig: { urls: [url], warnOnRelayFailure: false },
   }, roomId)
   const action = room.makeAction('cm-monitor-health')
-  const timer = setTimeout(() => process.exit(2), timeoutMs)
   action.onMessage(async (message) => {
     if (message?.kind !== 'probe' || typeof message.nonce !== 'string') return
     await action.send({ kind: 'ack', nonce: message.nonce })
-    clearTimeout(timer)
-    await room.leave()
+    await cleanup()
     if (process.connected) process.send({ type: 'done' })
     process.exit(0)
   })
-  await room.ready
-  if (process.connected) process.send({ type: 'ready' })
   process.on('message', async (message) => {
     if (message?.type === 'stop') {
-      clearTimeout(timer)
-      await room.leave()
+      await cleanup()
       process.exit(0)
     }
   })
+  await room.ready
+  if (process.connected) process.send({ type: 'ready' })
 }
 
 main().catch(async () => {
-  if (room) await room.leave().catch(() => {})
+  await cleanup()
   if (process.connected) process.send({ type: 'error' })
   process.exit(2)
 })
