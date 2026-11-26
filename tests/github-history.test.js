@@ -20,7 +20,7 @@ test('opens one incident issue on DOWN and avoids duplicate notifications', asyn
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 7 } },
   ])
-  await syncIncidents([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, { fetchImpl, now: Date.UTC(2026, 10, 25) })
+  await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, { fetchImpl, now: Date.UTC(2026, 10, 25) })
   assert.equal(calls.length, 2)
   assert.match(calls[1].options.body, /\[WebSocket Monitor\]\[DOWN\]\[eaglercraft-wisp\]/)
 })
@@ -31,7 +31,7 @@ test('closes an active incident after recovery', async () => {
     { match: (url) => url.endsWith('/issues/9/comments'), status: 201, body: {} },
     { match: (url) => url.endsWith('/issues/9'), status: 200, body: {} },
   ])
-  await syncIncidents([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 12 }], env, { fetchImpl })
+  await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 12 }], env, { fetchImpl })
   assert.equal(calls.length, 3)
   assert.match(calls[2].options.body, /"state":"closed"/)
 })
@@ -43,7 +43,7 @@ test('records first real protocol check in a new daily service series', async ()
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [] },
     { match: (url) => url.endsWith('/issues/15/comments') && url.includes('/repos/owner/repo'), status: 201, body: { id: 100 } },
   ])
-  const result = await recordCheckHistory([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
     fetchImpl, now: Date.UTC(2026, 10, 25, 12),
   })
   assert.equal(result.writes[0].action, 'created')
@@ -60,7 +60,7 @@ test('appends a check to an existing series comment without duplicating timestam
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body }] },
     { match: (url) => url.endsWith('/issues/comments/100'), status: 200, body: {} },
   ])
-  const result = await recordCheckHistory([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: false, elapsedMs: 500, attempts: 8 }], env, {
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, elapsedMs: 500, attempts: 8 }], env, {
     fetchImpl, now: Date.UTC(2026, 10, 25, 12, 5),
   })
   assert.equal(result.writes[0].action, 'updated')
@@ -71,7 +71,7 @@ test('appends a check to an existing series comment without duplicating timestam
 test('does not create a history record for disabled, not-due, or unconfigured services', async () => {
   const { fetchImpl, calls } = mockFetch([])
   const result = await recordCheckHistory([
-    { service: 'eaglercraft-eaglercraft-wisp', status: 'not_due' },
+    { service: 'eaglercraft-wisp', status: 'not_due' },
     { service: 'mcraft-p2p-peerjs', status: 'disabled' },
     { service: 'eaglercraft-relay', status: 'misconfigured', ok: false },
   ], env, { fetchImpl })
@@ -87,10 +87,10 @@ test('does not open a false incident during a scheduled maintenance window', asy
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
   ])
-  await syncIncidents([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
+  await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
     fetchImpl,
     now: Date.UTC(2026, 10, 25, 12),
-    maintenances: [{ service: 'eaglercraft-eaglercraft-wisp', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
+    maintenances: [{ service: 'eaglercraft-wisp', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
   })
   assert.equal(calls.length, 1)
 })
@@ -104,7 +104,7 @@ test('persists check samples even when incident notification creation fails', as
     { match: (url) => url.endsWith('/issues/18/comments'), status: 201, body: { id: 101 } },
   ])
   await assert.rejects(
-    publishGitHubHistory([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: false, elapsedMs: null, attempts: 8 }], env, {
+    publishGitHubHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, elapsedMs: null, attempts: 8 }], env, {
       fetchImpl,
       now: Date.UTC(2026, 10, 25, 12),
     }),
@@ -118,10 +118,10 @@ test('does not suppress incidents for a maintenance window marked completed', as
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 19 } },
   ])
-  await syncIncidents([{ service: 'eaglercraft-eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
+  await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
     fetchImpl,
     now: Date.UTC(2026, 10, 25, 12),
-    maintenances: [{ service: 'eaglercraft-eaglercraft-wisp', status: 'completed', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
+    maintenances: [{ service: 'eaglercraft-wisp', status: 'completed', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
   })
   assert.equal(calls.length, 2)
 })
