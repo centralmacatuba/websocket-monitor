@@ -1,0 +1,31 @@
+{
+  "repository": "centralmacatuba/websocket-monitor",
+  "metricsIssueTitle": "[WebSocket Monitor][Metrics] Daily health history",
+  "expectedIntervalMinutes": 5,
+  "services": [
+    {
+      "id": "trystero",
+      "name": "Mcraft P2P (Trystero)",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 3000
+    },
+    {
+      "id": "eaglercraft",
+      "name": "EaglerCraft Relay",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 2000
+    },
+    {
+      "id": "peerjs",
+      "name": "Mcraft P2P (PeerJS legado)",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 3000
+    },
+    {
+      "id": "wisp",
+      "name": "EaglerCraft Wisp v2",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 2000
+    }
+  ]
+}
