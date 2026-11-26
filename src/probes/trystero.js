@@ -70,18 +70,24 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
     const action = room.makeAction('cm-monitor-health')
 
     const ack = withTimeout(new Promise((resolveAck, rejectAck) => {
-      const timer = setTimeout(() => rejectAck(new Error('Trystero peer exchange timed out')), timeoutMs)
+      let timer
+      let settled = false
+      const settle = (error) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        if (error) rejectAck(error)
+        else resolveAck()
+      }
+      timer = setTimeout(() => settle(new Error('Trystero peer exchange timed out')), timeoutMs)
       action.onMessage((message) => {
-        if (message?.kind === 'ack' && message.nonce === nonce) {
-          clearTimeout(timer)
-          resolveAck()
-        }
+        if (message?.kind === 'ack' && message.nonce === nonce) settle()
       })
       room.onUserJoin(async () => {
-        try { await action.send({ kind: 'probe', nonce }) } catch (error) { rejectAck(error) }
+        try { await action.send({ kind: 'probe', nonce }) } catch (error) { settle(error) }
       })
       child.once('exit', (code) => {
-        if (code !== 0) rejectAck(new Error('Trystero worker exited before acknowledgement'))
+        if (code !== 0) settle(new Error('Trystero worker exited before acknowledgement'))
       })
     }), timeoutMs + 1_000, 'Trystero peer exchange timed out')
 
