@@ -30,10 +30,10 @@ Configure os toggles e intervalos em **Settings → Secrets and variables → Ac
 
 | Serviço | Ativar/desativar | Intervalo individual | Secret da URL |
 |---|---|---|---|
-| Trystero | `TRYSTERO_MONITOR_ENABLED` | `TRYSTERO_MONITOR_INTERVAL_MINUTES` | `MCRAFT_TRYSTERO_WS_URL` |
+| Trystero | `MCRAFT_P2P_MONITOR_ENABLED` | `MCRAFT_P2P_MONITOR_INTERVAL_MINUTES` | `MCRAFT_P2P_WS_URL` |
 | EaglerCraft Relay | `EAGLERCRAFT_RELAY_MONITOR_ENABLED` | `EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES` | `EAGLERCRAFT_RELAY_WS_URL` |
-| PeerJS | `PEERJS_MONITOR_ENABLED` | `PEERJS_MONITOR_INTERVAL_MINUTES` | `PEERJS_WS_URL` |
-| Wisp | `WISP_MONITOR_ENABLED` | `WISP_MONITOR_INTERVAL_MINUTES` | `WISP_WS_URL` |
+| PeerJS | `MCRAFT_P2P_PEERJS_MONITOR_ENABLED` | `MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES` | `MCRAFT_P2P_PEERJS_WS_URL` |
+| Wisp | `EAGLERCRAFT_WISP_MONITOR_ENABLED` | `EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES` | `EAGLERCRAFT_WISP_WS_URL` |
 
 São 14 configurações: 2 globais e 3 para cada um dos 4 serviços. Se um toggle individual não for definido, o serviço é habilitado automaticamente quando seu secret de URL existe; sem URL, ele fica desabilitado por padrão. Se o toggle for explicitamente `true` sem URL, a execução reporta erro de configuração. Se o intervalo individual estiver vazio ou inválido, será herdado o intervalo global.
 
@@ -42,8 +42,8 @@ Os intervalos são em minutos inteiros positivos. O workflow agenda um tick a ca
 Exemplos:
 - Definir `WS_MONITOR_ENABLED=false` pausa tudo.
 - Definir `WS_MONITOR_INTERVAL_MINUTES=10` verifica todos os serviços habilitados a cada dez minutos, salvo sobrescrita individual.
-- Definir `PEERJS_MONITOR_ENABLED=true` e cadastrar `PEERJS_WS_URL` ativa PeerJS.
-- Definir `WISP_MONITOR_INTERVAL_MINUTES=15` faz Wisp executar a cada quinze minutos.
+- Definir `MCRAFT_P2P_PEERJS_MONITOR_ENABLED=true` e cadastrar `MCRAFT_P2P_PEERJS_WS_URL` ativa PeerJS.
+- Definir `EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES=15` faz Wisp executar a cada quinze minutos.
 
 ### URLs
 
@@ -119,17 +119,17 @@ Edite `status-page/maintenance.json` na branch `principal`:
 }
 ```
 
-Use `service: "all"` para todos os relays ou um ID específico: `trystero`, `eaglercraft`, `peerjs` ou `wisp`. Os horários são ISO 8601 em UTC. A manutenção é exibida enquanto não tiver terminado; durante a janela, falhas previstas não abrem novos incidentes. Os probes continuam executando e registrando amostras para diagnóstico.
+Use `service: "all"` para todos os relays ou um ID específico: `mcraft-p2p`, `eaglercraft-relay`, `mcraft-p2p-peerjs` ou `eaglercraft-wisp`. Os horários são ISO 8601 em UTC. A manutenção é exibida enquanto não tiver terminado; durante a janela, falhas previstas não abrem novos incidentes. Os probes continuam executando e registrando amostras para diagnóstico.
 
 ### Badges
 
 O workflow gera SVGs atualizados para o status geral e para cada serviço:
 
 - `/badges/overall.svg`
-- `/badges/trystero.svg`
-- `/badges/eaglercraft.svg`
-- `/badges/peerjs.svg`
-- `/badges/wisp.svg`
+- `/badges/mcraft-p2p.svg`
+- `/badges/eaglercraft-relay.svg`
+- `/badges/mcraft-p2p-peerjs.svg`
+- `/badges/eaglercraft-wisp.svg`
 
 A página mostra os badges e o snippet Markdown correspondente para inclusão em READMEs e documentações.
 
