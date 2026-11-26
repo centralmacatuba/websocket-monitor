@@ -98,6 +98,18 @@ export async function recordDailySnapshot(results, env = process.env, options = 
   const apiUrl = env.GITHUB_API_URL ?? 'https://api.github.com'
   const now = options.now ?? Date.now()
   const date = new Date(now).toISOString().slice(0, 10)
+  const included = results.filter((result) => result.service && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
+  if (included.length === 0) return { skipped: true, reason: 'no-checks' }
+  const rows = included.map((result) => `| ${result.name} | ${result.ok ? 'UP' : 'DOWN'} | ${Number.isFinite(result.elapsedMs) ? `${Math.round(result.elapsedMs)} ms` : '—'} | ${result.attempts ?? '—'} |`)
+  const snapshot = [
+    `## ${date} (UTC)`,
+    '',
+    '| Service | Status | Probe latency | Attempts |',
+    '|---|---|---:|---:|',
+    ...rows,
+    '',
+    '_Latency is the protocol probe duration, not only the WebSocket handshake time._',
+  ].join('\\n')
   const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
   let metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === METRICS_TITLE)
 
@@ -111,6 +123,8 @@ export async function recordDailySnapshot(results, env = process.env, options = 
           '',
           'This issue stores one status and latency snapshot per UTC day.',
           'Outage start and recovery timestamps are tracked in individual incident issues.',
+          '',
+          snapshot,
           '',
           `<!-- websocket-monitor-last-daily:${date} -->`,
         ].join('\n'),
