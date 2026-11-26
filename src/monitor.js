@@ -47,12 +47,13 @@ async function runService(service, url, options) {
     probe = service.probe,
   } = options
 
-  const startedAt = Date.now()
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const attemptStartedAt = Date.now()
     try {
       const result = await probe(url, { timeoutMs })
-      safeLog(log, 'info', `[UP] ${service.name}: transporte + protocolo OK (${result.elapsedMs ?? 0} ms; tentativa ${attempt}/${maxAttempts})`)
-      return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result, elapsedMs: Date.now() - startedAt }
+      const elapsedMs = Number.isFinite(result.elapsedMs) ? result.elapsedMs : Date.now() - attemptStartedAt
+      safeLog(log, 'info', `[UP] ${service.name}: transporte + protocolo OK (${elapsedMs} ms; tentativa ${attempt}/${maxAttempts})`)
+      return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result, elapsedMs }
     } catch {
       safeLog(log, 'warn', `[DOWN] ${service.name}: falha de protocolo/transporte (tentativa ${attempt}/${maxAttempts})`)
       if (attempt < maxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, retryDelayMs))
