@@ -112,7 +112,7 @@ export async function recordDailySnapshot(results, env = process.env, options = 
     ...items.map((result) => `| ${result.name} | ${result.ok ? 'UP' : 'DOWN'} | ${Number.isFinite(result.elapsedMs) ? `${Math.round(result.elapsedMs)} ms` : '—'} | ${result.attempts ?? '—'} |`),
     '',
     '_Latency is the protocol probe duration, not only the WebSocket handshake time._',
-  ].join('\\n')
+  ].join('\n')
 
   if (!metricsIssue) {
     const markers = included.map((result) => snapshotMarker(result.service))
@@ -129,7 +129,7 @@ export async function recordDailySnapshot(results, env = process.env, options = 
           renderSnapshot(included),
           '',
           ...markers,
-        ].join('\\n'),
+        ].join('\n'),
       }),
     }, fetchImpl, apiUrl)
     return { skipped: false, issueNumber: metricsIssue.number }
@@ -147,7 +147,7 @@ export async function recordDailySnapshot(results, env = process.env, options = 
   const markers = pending.map((result) => snapshotMarker(result.service))
   await githubRequest(`${repository}/issues/${metricsIssue.number}`, token, {
     method: 'PATCH',
-    body: JSON.stringify({ body: `${body}\\n\\n${markers.join('\\n')}` }),
+    body: JSON.stringify({ body: `${body}\n\n${markers.join('\n')}` }),
   }, fetchImpl, apiUrl)
 
   return { skipped: false, issueNumber: metricsIssue.number }
