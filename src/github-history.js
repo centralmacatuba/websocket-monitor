@@ -100,20 +100,22 @@ export async function recordDailySnapshot(results, env = process.env, options = 
   const date = new Date(now).toISOString().slice(0, 10)
   const included = results.filter((result) => result.service && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
   if (included.length === 0) return { skipped: true, reason: 'no-checks' }
-  const rows = included.map((result) => `| ${result.name} | ${result.ok ? 'UP' : 'DOWN'} | ${Number.isFinite(result.elapsedMs) ? `${Math.round(result.elapsedMs)} ms` : '—'} | ${result.attempts ?? '—'} |`)
-  const snapshot = [
+
+  const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
+  let metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === METRICS_TITLE)
+  const snapshotMarker = (service) => `<!-- websocket-monitor-last-daily:${service}:${date} -->`
+  const renderSnapshot = (items) => [
     `## ${date} (UTC)`,
     '',
     '| Service | Status | Probe latency | Attempts |',
     '|---|---|---:|---:|',
-    ...rows,
+    ...items.map((result) => `| ${result.name} | ${result.ok ? 'UP' : 'DOWN'} | ${Number.isFinite(result.elapsedMs) ? `${Math.round(result.elapsedMs)} ms` : '—'} | ${result.attempts ?? '—'} |`),
     '',
     '_Latency is the protocol probe duration, not only the WebSocket handshake time._',
-  ].join('\n')
-  const issues = await githubRequest(`${repository}/issues?state=open&per_page=100`, token, {}, fetchImpl, apiUrl)
-  let metricsIssue = issues.find((issue) => !issue.pull_request && issue.title === METRICS_TITLE)
+  ].join('\\n')
 
   if (!metricsIssue) {
+    const markers = included.map((result) => snapshotMarker(result.service))
     metricsIssue = await githubRequest(`${repository}/issues`, token, {
       method: 'POST',
       body: JSON.stringify({
@@ -121,31 +123,32 @@ export async function recordDailySnapshot(results, env = process.env, options = 
         body: [
           '# Daily monitor snapshots',
           '',
-          'This issue stores one status and latency snapshot per UTC day.',
+          'This issue stores one status and latency snapshot per service per UTC day.',
           'Outage start and recovery timestamps are tracked in individual incident issues.',
           '',
-          snapshot,
+          renderSnapshot(included),
           '',
-          `<!-- websocket-monitor-last-daily:${date} -->`,
-        ].join('\n'),
+          ...markers,
+        ].join('\\n'),
       }),
     }, fetchImpl, apiUrl)
-    // The initial issue is the snapshot record for today.
-  } else {
-    const previousDate = metricsIssue.body?.match(/<!-- websocket-monitor-last-daily:(\d{4}-\d{2}-\d{2}) -->/)?.[1]
-    if (previousDate === date) return { skipped: true, reason: 'already-recorded' }
-
-    await githubRequest(`${repository}/issues/${metricsIssue.number}/comments`, token, {
-      method: 'POST',
-      body: JSON.stringify({ body: snapshot }),
-    }, fetchImpl, apiUrl)
-
-    const body = (metricsIssue.body ?? '').replace(/<!-- websocket-monitor-last-daily:\d{4}-\d{2}-\d{2} -->/g, '').trimEnd()
-    await githubRequest(`${repository}/issues/${metricsIssue.number}`, token, {
-      method: 'PATCH',
-      body: JSON.stringify({ body: `${body}\n\n<!-- websocket-monitor-last-daily:${date} -->` }),
-    }, fetchImpl, apiUrl)
+    return { skipped: false, issueNumber: metricsIssue.number }
   }
+
+  const pending = included.filter((result) => !metricsIssue.body?.includes(snapshotMarker(result.service)))
+  if (pending.length === 0) return { skipped: true, reason: 'already-recorded' }
+
+  await githubRequest(`${repository}/issues/${metricsIssue.number}/comments`, token, {
+    method: 'POST',
+    body: JSON.stringify({ body: renderSnapshot(pending) }),
+  }, fetchImpl, apiUrl)
+
+  const body = (metricsIssue.body ?? '').trimEnd()
+  const markers = pending.map((result) => snapshotMarker(result.service))
+  await githubRequest(`${repository}/issues/${metricsIssue.number}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ body: `${body}\\n\\n${markers.join('\\n')}` }),
+  }, fetchImpl, apiUrl)
 
   return { skipped: false, issueNumber: metricsIssue.number }
 }
