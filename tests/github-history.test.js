@@ -40,7 +40,7 @@ test('closes an active incident after recovery', async () => {
   assert.match(calls[2].options.body, /"state":"closed"/)
 })
 
-test('daily snapshots are idempotent for the same UTC date', async () => {
+test('six-hour snapshots are idempotent for the same service and UTC window', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 12, title: '[WebSocket Monitor][Metrics] Daily health history', body: '<!-- websocket-monitor-snapshot:wisp:2026-11-25-12 -->' }] },
   ])
@@ -56,7 +56,7 @@ test('history publishing is skipped safely without a token or repository', async
   assert.deepEqual(await publishGitHubHistory([], {}), { skipped: true })
 })
 
-test('creates the metrics issue with the first daily snapshot included', async () => {
+test('creates the metrics issue with the first six-hour snapshot included', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 15 } },
@@ -70,7 +70,7 @@ test('creates the metrics issue with the first daily snapshot included', async (
   assert.match(calls[1].options.body, /websocket-monitor-snapshot:wisp:2026-11-25-12/)
 })
 
-test('records each service once per UTC day without suppressing other services', async () => {
+test('records each service once per six-hour UTC window without suppressing other services', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{
       number: 12,
