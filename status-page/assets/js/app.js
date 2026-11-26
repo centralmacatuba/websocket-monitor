@@ -1,4 +1,4 @@
-const $ = (selector) => document.querySelector(selector)
+const $ = (selector) => document.querySelector(selector)\nconst escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\"', '&quot;').replaceAll(\"'\", '&#39;')
 const statusLabels = { operational: 'Operacional', degraded: 'Desempenho degradado', down: 'Indisponível', maintenance: 'Em manutenção', unknown: 'Sem dados recentes' }
 const number = (value) => value == null ? '—' : new Intl.NumberFormat('pt-BR').format(value)
 const percent = (value) => value == null ? 'Coletando dados' : `${value.toFixed(3).replace('.', ',')}%`
@@ -23,7 +23,7 @@ function renderServices(services) {
     const metrics = service.uptime ?? {}
     const values = ['24h', '7d', '30d'].map((key) => `<div class="metric"><strong>${percent(metrics[key]?.uptime)}</strong><span>Uptime ${key}</span></div>`).join('')
     const latency = service.latencyMs == null ? '—' : `${number(service.latencyMs)} ms`
-    return `<article class="service-card"><div class="service-top"><span class="service-name">${service.name}</span><span class="status-pill ${service.status}">${statusLabels[service.status] ?? statusLabels.unknown}</span></div><div class="service-metrics">${values}</div><div class="service-foot"><span>Latência atual: ${latency}</span><span>${service.uptime?.['24h']?.checks ?? 0} verificações / 24h</span></div><div class="service-foot"><span>Última verificação</span><span>${dateTime(service.lastCheckedAt)}</span></div></article>`
+    return `<article class="service-card"><div class="service-top"><span class="service-name"> ${escapeHtml(service.name)}</span><span class="status-pill ${service.status}">${statusLabels[service.status] ?? statusLabels.unknown}</span></div><div class="service-metrics">${values}</div><div class="service-foot"><span>Latência atual: ${latency}</span><span>${service.uptime?.['24h']?.checks ?? 0} verificações / 24h</span></div><div class="service-foot"><span>Última verificação</span><span>${dateTime(service.lastCheckedAt)}</span></div></article>`
   }).join('')
 }
 
@@ -36,7 +36,7 @@ function lineChart(service, samples) {
   const points = values.map((sample) => [x(sample[0]), y(sample[2])])
   const path = points.map((point, index) => `${index ? 'L' : 'M'}${point[0].toFixed(1)},${point[1].toFixed(1)}`).join(' ')
   const last = values.at(-1)
-  return `<article class="chart-card"><h3>${service.name}</h3><p>${values.length} medições · média ${service.latency24h?.averageMs == null ? '—' : number(service.latency24h.averageMs) + ' ms'} · P95 ${service.latency24h?.p95Ms == null ? '—' : number(service.latency24h.p95Ms) + ' ms'}</p><svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Histórico de latência de ${service.name} nas últimas 24 horas"><line class="gridline" x1="${left}" y1="${top}" x2="${width-right}" y2="${top}"/><line class="gridline" x1="${left}" y1="${(height+top-bottom)/2}" x2="${width-right}" y2="${(height+top-bottom)/2}"/><line class="gridline" x1="${left}" y1="${height-bottom}" x2="${width-right}" y2="${height-bottom}"/><text class="axis-label" x="0" y="${top+3}">${number(Math.round(max))}</text><text class="axis-label" x="0" y="${height-bottom+3}">0 ms</text><path class="line" d="${path}"/><text class="axis-label" x="${left}" y="${height-4}">-24h</text><text class="axis-label" x="${width-right}" y="${height-4}" text-anchor="end">agora</text></svg></article>`
+  return `<article class="chart-card"><h3>${escapeHtml(service.name)}</h3><p>${values.length} medições · média ${service.latency24h?.averageMs == null ? '—' : number(service.latency24h.averageMs) + ' ms'} · P95 ${service.latency24h?.p95Ms == null ? '—' : number(service.latency24h.p95Ms) + ' ms'}</p><svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Histórico de latência de ${escapeHtml(service.name)} nas últimas 24 horas"><line class="gridline" x1="${left}" y1="${top}" x2="${width-right}" y2="${top}"/><line class="gridline" x1="${left}" y1="${(height+top-bottom)/2}" x2="${width-right}" y2="${(height+top-bottom)/2}"/><line class="gridline" x1="${left}" y1="${height-bottom}" x2="${width-right}" y2="${height-bottom}"/><text class="axis-label" x="0" y="${top+3}">${number(Math.round(max))}</text><text class="axis-label" x="0" y="${height-bottom+3}">0 ms</text><path class="line" d="${path}"/><text class="axis-label" x="${left}" y="${height-4}">-24h</text><text class="axis-label" x="${width-right}" y="${height-4}" text-anchor="end">agora</text></svg></article>`
 }
 
 function renderLatency(services, history) {
@@ -56,19 +56,19 @@ function renderUptime(services, history) {
       const cls = !total ? 'empty' : down === 0 ? 'good' : up === 0 ? 'bad' : 'partial'
       return `<span class="uptime-bar ${cls}" title="${new Date(start).toLocaleDateString('pt-BR')}: ${total ? ((up/total)*100).toFixed(2)+'% ('+total+' verificações)' : 'sem dados'}"></span>`
     }).join('')
-    return `<article class="history-card"><div class="history-head"><strong>${service.name}</strong><span class="uptime-value">${percent(service.uptime?.['30d']?.uptime)}</span></div><div class="uptime-bars" aria-label="Disponibilidade diária nos últimos 30 dias">${days}</div><div class="history-legend"><span><i class="legend-dot" style="background:#238636"></i>100% das verificações OK</span><span><i class="legend-dot" style="background:#d29922"></i>Falhas registradas</span><span><i class="legend-dot" style="background:#343c46"></i>Sem amostras</span></div></article>`
+    return `<article class="history-card"><div class="history-head"><strong>${escapeHtml(service.name)}</strong><span class="uptime-value">${percent(service.uptime?.['30d']?.uptime)}</span></div><div class="uptime-bars" aria-label="Disponibilidade diária nos últimos 30 dias">${days}</div><div class="history-legend"><span><i class="legend-dot" style="background:#238636"></i>100% das verificações OK</span><span><i class="legend-dot" style="background:#d29922"></i>Falhas registradas</span><span><i class="legend-dot" style="background:#343c46"></i>Sem amostras</span></div></article>`
   }).join('')
 }
 
 function renderMaintenances(items) {
   const now = Date.now()
   const visible = items.filter((item) => Date.parse(item.endsAt) >= now).sort((a,b) => Date.parse(a.startsAt)-Date.parse(b.startsAt))
-  $('#maintenances').innerHTML = visible.length ? visible.map((item) => `<article class="notice-card"><div><strong>${item.title}</strong><p>${item.description ?? ''}</p><p>${item.service === 'all' ? 'Todos os serviços' : item.service} · ${dateTime(item.startsAt)} – ${dateTime(item.endsAt)}</p></div><span class="status-pill maintenance">${Date.parse(item.startsAt) <= now ? 'Em andamento' : 'Programada'}</span></article>`).join('') : '<p class="empty">Nenhuma manutenção programada publicada.</p>'
+  $('#maintenances').innerHTML = visible.length ? visible.map((item) => `<article class="notice-card"><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.description ?? '')}</p><p> ${escapeHtml(item.service === 'all' ? 'Todos os serviços' : item.service)} · ${dateTime(item.startsAt)} – ${dateTime(item.endsAt)}</p></div><span class="status-pill maintenance">${Date.parse(item.startsAt) <= now ? 'Em andamento' : 'Programada'}</span></article>`).join('') : '<p class="empty">Nenhuma manutenção programada publicada.</p>'
 }
 
 function renderIncidents(incidents) {
   $('#incident-count').textContent = `${incidents.length} registros`
-  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong>${item.title}</strong><p>${item.serviceName ?? 'Serviço'} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
+  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.serviceName ?? 'Serviço')} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
 }
 
 function renderBadges(badges) {
@@ -83,7 +83,7 @@ async function load() {
   $('#refresh').disabled = true
   try {
     const [status, history, incidents, maintenance] = await Promise.all(['status.json','history.json','incidents.json','../maintenance.json'].map(async (file) => {
-      const url = file === '../maintenance.json' ? new URL('../../maintenance.json', import.meta.url) : new URL(`./data/${file}`, import.meta.url)
+      const url = file === '../maintenance.json' ? new URL('../../maintenance.json', import.meta.url) : new URL(`../../data/${file}`, import.meta.url)
       const response = await fetch(url, { cache: 'no-store' })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.json()
