@@ -62,8 +62,8 @@ async function runService(service, url, options) {
 }
 
 /**
- * Run only the services enabled by environment configuration and due at this
- * scheduler tick. The GitHub schedule is minute-granular; service intervals are
+ * Run all enabled, due service probes concurrently and isolate each result.
+ * Services are selected by environment configuration and their own interval at this The GitHub schedule is minute-granular; service intervals are
  * calculated independently against UTC epoch minutes. Manual/local runs force
  * all enabled services to execute.
  */
