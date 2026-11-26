@@ -53,19 +53,96 @@ Exemplos:
 
 Não inclua credenciais ou tokens nas URLs. Os logs não imprimem endpoints, payloads, IDs temporários ou mensagens recebidas.
 
-## Incidentes, notificações e histórico
+## Incidentes, histórico e notificações
 
 O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou serviço pago adicional:
 
 - Quando um probe falha após todas as tentativas, abre uma issue `[WebSocket Monitor][DOWN]` para aquele serviço. A issue funciona como alerta e registro do início do incidente.
 - Enquanto o serviço continuar indisponível, a mesma issue permanece aberta; verificações subsequentes não criam alertas duplicados.
 - Quando o probe volta a funcionar, o monitor comenta a recuperação e fecha a issue. O histórico de issues preserva início, recuperação e duração do incidente.
-- Uma issue única de métricas recebe snapshots de status, latência do probe e tentativas a cada seis horas (UTC), por serviço. Cada janela é idempotente e serviços com intervalos diferentes são registrados independentemente.
-- As notificações nativas do GitHub dependem das preferências de notificação/inscrição de cada usuário. Integrações externas (Discord, Slack ou e-mail) podem ser adicionadas depois sem mudar os probes.
+- Cada verificação de protocolo efetivamente executada é registrada como uma amostra compacta em um comentário diário por serviço na issue de métricas. Cada amostra contém timestamp, resultado, duração total do probe e número de tentativas.
+- As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário.
+- Janelas de manutenção suprimem a abertura de novos incidentes para os serviços abrangidos. Incidentes já abertos continuam sendo atualizados e fechados normalmente quando houver recuperação.
 
-O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar snapshots. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
+O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar amostras. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
 
-Os incidentes formam o histórico de disponibilidade; os snapshots de seis em seis horas formam o histórico de latência. Uma página pública de status com gráficos de uptime e badges pode ser adicionada posteriormente como front-end estático, consumindo esses registros.
+## Status Page pública
+
+A página estática fica em `status-page/` e é publicada pelo workflow `.github/workflows/status-page.yml` no GitHub Pages. Não há branch `gh-pages`, framework pesado, servidor Render ou banco de dados externo.
+
+**Endereço esperado:** https://centralmacatuba.github.io/websocket-monitor/
+
+A publicação é acionada quando o workflow de monitoramento termina (inclusive quando o resultado de um probe faz o workflow terminar com falha), quando os arquivos da página mudam na branch `principal`, ou manualmente. O builder lê as issues/comentários públicos do próprio repositório, gera JSON estático e badges SVG e publica tudo pelo fluxo oficial de artefatos do GitHub Pages.
+
+### Métricas de uptime e latência
+
+- **24 horas, 7 dias e 30 dias:** percentual calculado como verificações bem-sucedidas ÷ verificações executadas × 100.
+- **Sem dados:** se não houver amostras no período, o valor é exibido como “Coletando dados”, nunca como 100%.
+- **Amostras reais:** somente probes executados entram no cálculo. Serviços em intervalos diferentes não recebem verificações artificiais nos minutos em que não estavam programados.
+- **Manutenções:** por padrão, verificações dentro de uma janela de manutenção são excluídas do cálculo de uptime. Use `"excludeFromUptime": false` para manter essas verificações no denominador.
+- **Latência:** mede a duração total do probe de protocolo, incluindo tentativas/retries; a página mostra histórico das últimas 24 horas, média e P95.
+- **Dados antigos:** se a última amostra ultrapassar três intervalos esperados (com mínimo de 15 minutos), o serviço aparece como “Sem dados recentes”, em vez de continuar sendo exibido como operacional.
+- **Retenção visual:** os gráficos e agregações da página usam as amostras dos últimos 30 dias. Os comentários históricos permanecem na issue de métricas.
+
+A disponibilidade apresentada é uma **taxa observada por verificações**, não uma medição contínua de cada segundo. Um intervalo entre checks sem amostra não é automaticamente classificado como uptime ou downtime.
+
+### Status e desempenho degradado
+
+Cada serviço pode estar em um destes estados:
+
+- **Operacional:** último probe recente concluído com sucesso e latência dentro do limite.
+- **Desempenho degradado:** probe de protocolo concluiu com sucesso, mas a latência ultrapassou o limite configurado.
+- **Indisponível:** último probe executado falhou.
+- **Em manutenção:** existe uma janela de manutenção ativa para o serviço ou para todos.
+- **Sem dados recentes:** não há amostra ou a última amostra está obsoleta.
+
+Os limites iniciais ficam em `status-page/config.json`, na propriedade `degradedLatencyMs` de cada serviço. Ajuste os limites conforme o comportamento real dos relays; eles são critérios de apresentação, não falhas de protocolo.
+
+### Manutenções programadas
+
+Edite `status-page/maintenance.json` na branch `principal`:
+
+```json
+{
+  "maintenances": [
+    {
+      "id": "maintenance-2026-01",
+      "service": "all",
+      "title": "Manutenção de infraestrutura",
+      "description": "Atualização planejada dos serviços.",
+      "startsAt": "2026-12-01T02:00:00.000Z",
+      "endsAt": "2026-12-01T03:00:00.000Z",
+      "status": "scheduled",
+      "excludeFromUptime": true
+    }
+  ]
+}
+```
+
+Use `service: "all"` para todos os relays ou um ID específico: `trystero`, `eaglercraft`, `peerjs` ou `wisp`. Os horários são ISO 8601 em UTC. A manutenção é exibida enquanto não tiver terminado; durante a janela, falhas previstas não abrem novos incidentes. Os probes continuam executando e registrando amostras para diagnóstico.
+
+### Badges
+
+O workflow gera SVGs atualizados para o status geral e para cada serviço:
+
+- `/badges/overall.svg`
+- `/badges/trystero.svg`
+- `/badges/eaglercraft.svg`
+- `/badges/peerjs.svg`
+- `/badges/wisp.svg`
+
+A página mostra os badges e o snippet Markdown correspondente para inclusão em READMEs e documentações.
+
+### Ativação do GitHub Pages
+
+Depois que as alterações forem integradas à branch `principal`:
+
+1. Abra **Settings → Pages** no repositório.
+2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
+3. Execute manualmente o workflow **Publish Status Page** ou aguarde a próxima verificação do monitor.
+4. O endereço publicado aparecerá no ambiente `github-pages` e no resultado do workflow.
+
+O deploy exige as permissões `pages: write` e `id-token: write`, concedidas somente ao job de publicação. O job que consulta os incidentes usa apenas `issues: read`.
 
 ## Execução automática e Render Free
 
