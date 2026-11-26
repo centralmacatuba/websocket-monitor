@@ -54,6 +54,11 @@ jobs:
       - name: Generate status metrics and badges
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
+          MCRAFT_P2P_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_MONITOR_INTERVAL_MINUTES }}
+          EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES }}
+          MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES }}
+          EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES }}
         run: node scripts/build-status-data.js
 
       - name: Upload GitHub Pages artifact
