@@ -21,7 +21,7 @@ export function calculateUptime(samples, now = Date.now(), windowMs = WINDOWS['2
 
 export function classifyService(samples, config, now = Date.now(), maintenances = []) {
   const latest = [...samples].sort((a, b) => b[0] - a[0])[0]
-  const activeMaintenance = maintenances.find((item) => item.service === config.id && item.status !== 'completed'
+  const activeMaintenance = maintenances.find((item) => (item.service === config.id || item.service === 'all') && item.status !== 'completed'
     && Date.parse(item.startsAt) <= now && Date.parse(item.endsAt) >= now)
   if (activeMaintenance) return { status: 'maintenance', maintenance: activeMaintenance, latestSample: latest ?? null }
   if (!latest) return { status: 'unknown', reason: 'no-data', latestSample: null }
@@ -38,7 +38,7 @@ export function buildServiceSummary(config, samples, now = Date.now(), maintenan
   const status = classifyService(samples, config, now, maintenances)
   const metrics = Object.fromEntries(Object.entries(WINDOWS).map(([key, duration]) => [
     key,
-    calculateUptime(samples, now, duration, maintenances),
+    calculateUptime(samples, now, duration, maintenances.filter((item) => item.service === config.id || item.service === 'all')),
   ]))
   const recent = samples.filter((sample) => sample[0] >= now - WINDOWS['24h'] && sample[1] === 1 && Number.isFinite(sample[2]))
   const latencyValues = recent.map((sample) => sample[2]).sort((a, b) => a - b)
