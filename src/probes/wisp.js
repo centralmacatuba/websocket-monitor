@@ -1,7 +1,7 @@
 import { client as wisp } from '@mercuryworkshop/wisp-js/client'
 
 /** Negotiate Wisp v2 through the same official client API used by the service tests. */
-export function checkWisp(url, { timeoutMs = 15_000 } = {}) {
+export function checkWisp(url, { timeoutMs = 15_000, ClientConnection = wisp.ClientConnection } = {}) {
   const parsed = new URL(url)
   if (!['ws:', 'wss:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
     throw new Error('Invalid Wisp WebSocket URL')
@@ -9,7 +9,7 @@ export function checkWisp(url, { timeoutMs = 15_000 } = {}) {
 
   return new Promise((resolve, reject) => {
     const startedAt = Date.now()
-    const connection = new wisp.ClientConnection(parsed.toString(), { wisp_version: 2 })
+    const connection = new ClientConnection(parsed.toString(), { wisp_version: 2 })
     let settled = false
     const timer = setTimeout(() => finish(new Error('Wisp v2 negotiation timed out')), timeoutMs)
 
