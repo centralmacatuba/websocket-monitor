@@ -82,3 +82,15 @@ test('does not create a history record for disabled, not-due, or unconfigured se
 test('history publishing is skipped safely without a token or repository', async () => {
   assert.deepEqual(await publishGitHubHistory([], {}), { skipped: true })
 })
+
+test('does not open a false incident during a scheduled maintenance window', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+  ])
+  await syncIncidents([{ service: 'wisp', name: 'Wisp', ok: false, attempts: 8 }], env, {
+    fetchImpl,
+    now: Date.UTC(2026, 10, 25, 12),
+    maintenances: [{ service: 'wisp', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
+  })
+  assert.equal(calls.length, 1)
+})
