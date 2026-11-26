@@ -5,13 +5,120 @@ settings:
   excludeLinksFromLockfile: false
 
 importers:
+
   .:
     dependencies:
+      '@mercuryworkshop/wisp-js':
+        specifier: 0.5.3
+        version: 0.5.3
+      '@trystero-p2p/ws-relay':
+        specifier: 0.26.0
+        version: 0.26.0(bufferutil@4.2.0)
+      peerjs:
+        specifier: 1.5.5
+        version: 1.5.5
+      werift:
+        specifier: 0.28.0
+        version: 0.28.0
       ws:
-        specifier: ^8.22.0
-        version: 8.22.0
+        specifier: 8.22.0
+        version: 8.22.0(bufferutil@4.2.0)
 
 packages:
+
+  '@leichtgewicht/ip-codec@2.0.5':
+    resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
+
+  '@mercuryworkshop/wisp-js@0.5.3':
+    resolution: {integrity: sha512-kEvnBt57x0g39HPatsYWXXboDYx79/eQxuGD2Ym9c5+LFGbKZa2Hbv6neBhwhlS23u73Y6ZTFqb2VVJNUoejGg==}
+    hasBin: true
+
+  '@msgpack/msgpack@2.8.0':
+    resolution: {integrity: sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==}
+    engines: {node: '>= 10'}
+
+  '@trystero-p2p/core@0.26.0':
+    resolution: {integrity: sha512-CZpeXPgfbDdFKrGxfD98F9tn/fTjya4mQ2o/Ax6H0qpBaJXCBz5+jyPtjsYEPAAcKRK/btOatCetFiQ5qIMCOA==}
+
+  '@trystero-p2p/ws-relay@0.26.0':
+    resolution: {integrity: sha512-jV1zLCiJ0Tu3ZEExTPRTV5uynICgwI2yJqdT6VR0YPHEx5xPGkzEjh/ixkPM7/8Psbwwxa3UtGMsHTUXrBWqqA==}
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
+
+  '@types/dom-webcodecs@0.1.13':
+    resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
+
+  '@types/node@26.6.7':
+    resolution: {integrity: sha512-tovuRfrUILu6v46bMG+BgXxMvsqPBx2WO2as8Rpln+JTff1dbexMtAM4KFTejmL0axsnSWViCW7MecUQpLuBRA==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
+
+  base64-js@1.5.1:
+    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+
+  buffer@6.0.3:
+    resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
+
+  bufferutil@4.2.0:
+    resolution: {integrity: sha512-gyy58jET9kst2IGyBKb96a4Y2bPGTHXGyCd0/1eqIV3hr1Sz3VxtA8n7bXh8fLIuE2K6Z0Upax5a5Msx+HU1IQ==}
+    engines: {node: '>=6.14.2'}
+
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
+    engines: {node: '>=22.12.0'}
+
+  dns-packet@5.6.1:
+    resolution: {integrity: sha512-l4gcSouhcgIKRvyy99RNVOgxXiicE+2jZoNmaNmZ6JXiGajBOJAesk1OBlJuM5k2c+eudGdLxDqXuPCKIj6kpw==}
+    engines: {node: '>=6'}
+
+  eventemitter3@4.0.7:
+    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
+
+  ieee754@1.2.1:
+    resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
+
+  ipaddr.js@2.5.0:
+    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
+    engines: {node: '>= 10'}
+
+  mediabunny@1.66.4:
+    resolution: {integrity: sha512-VIPwwaVpY5mUnf9mAOJlBii4P1nHK05X8//veRjJrddn514BSOuYaMrUy1UReLMVVsm85id6eMu0z5K71Kkf+g==}
+
+  multicast-dns@7.2.5:
+    resolution: {integrity: sha512-2eznPJP8z2BFLX50tf0LuODrpINqP1RVIm/CObbTcBRITQgmC/TjcREF1NeTBzIcR5XO/ukWo+YHOjBbFwIupg==}
+    hasBin: true
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
+
+  peerjs-js-binarypack@2.1.0:
+    resolution: {integrity: sha512-YIwCC+pTzp3Bi8jPI9UFKO0t0SLo6xALnHkiNt/iUFmUUZG0fEEmEyFKvjsDKweiFitzHRyhuh6NvyJZ4nNxMg==}
+    engines: {node: '>= 14.0.0'}
+
+  peerjs@1.5.5:
+    resolution: {integrity: sha512-viMUCPDL6CSfOu0ZqVcFqbWRXNHIbv2lPqNbrBIjbFYrflebOjItJ4hPfhjnuUCstqciHVu9vVJ7jFqqKi/EuQ==}
+    engines: {node: '>= 14'}
+
+  sdp@3.2.3:
+    resolution: {integrity: sha512-UYuY3JFaVa7Zc+rxxi8iblwD7mdloGxCzMEQIJPcCLiHKjjqMqLsruMkI+emgnYARkfHk4o7seEETABc4bwokg==}
+
+  thunky@1.1.0:
+    resolution: {integrity: sha512-eHY7nBftgThBqOyHGVN+l8gF0BucP09fMo0oO/Lb0w1OF80dJv+lDVpXG60WMQvkcxAkNybKsrEIE3ZtKGmPrA==}
+
+  undici-types@8.9.0:
+    resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
+  webrtc-adapter@9.0.6:
+    resolution: {integrity: sha512-CHbl2ZQbxx164IgWRgzJno4hWtM4tFbRam1QfI3Yxhs3w/DvqluVxVWeXs3oL5/fbGkSNLKo0Ty5MgUWceNhog==}
+    engines: {node: '>=6.0.0', npm: '>=3.10.0'}
+
+  werift@0.28.0:
+    resolution: {integrity: sha512-Ro4r5OOtcLgx4VbrXGRS80sNZHptLIyJ2o/EGOj6dyRksTbiTLbtP/u2psDIpsXUOYl3vW+aK3YBPsKPl9SxJw==}
+    engines: {node: '>=22'}
+
   ws@8.22.0:
     resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
     engines: {node: '>=10.0.0'}
@@ -25,4 +132,105 @@ packages:
         optional: true
 
 snapshots:
-  ws@8.22.0: {}
+
+  '@leichtgewicht/ip-codec@2.0.5': {}
+
+  '@mercuryworkshop/wisp-js@0.5.3':
+    dependencies:
+      bufferutil: 4.2.0
+      commander: 15.1.0
+      ipaddr.js: 2.5.0
+      ws: 8.22.0(bufferutil@4.2.0)
+    transitivePeerDependencies:
+      - utf-8-validate
+
+  '@msgpack/msgpack@2.8.0': {}
+
+  '@trystero-p2p/core@0.26.0': {}
+
+  '@trystero-p2p/ws-relay@0.26.0(bufferutil@4.2.0)':
+    dependencies:
+      '@trystero-p2p/core': 0.26.0
+      '@types/ws': 8.18.2
+      ws: 8.22.0(bufferutil@4.2.0)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    dependencies:
+      '@types/dom-webcodecs': 0.1.13
+
+  '@types/dom-webcodecs@0.1.13': {}
+
+  '@types/node@26.6.7':
+    dependencies:
+      undici-types: 8.9.0
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 26.6.7
+
+  base64-js@1.5.1: {}
+
+  buffer@6.0.3:
+    dependencies:
+      base64-js: 1.5.1
+      ieee754: 1.2.1
+
+  bufferutil@4.2.0:
+    dependencies:
+      node-gyp-build: 4.8.4
+
+  commander@15.1.0: {}
+
+  dns-packet@5.6.1:
+    dependencies:
+      '@leichtgewicht/ip-codec': 2.0.5
+
+  eventemitter3@4.0.7: {}
+
+  ieee754@1.2.1: {}
+
+  ipaddr.js@2.5.0: {}
+
+  mediabunny@1.66.4:
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.12
+      '@types/dom-webcodecs': 0.1.13
+
+  multicast-dns@7.2.5:
+    dependencies:
+      dns-packet: 5.6.1
+      thunky: 1.1.0
+
+  node-gyp-build@4.8.4: {}
+
+  peerjs-js-binarypack@2.1.0: {}
+
+  peerjs@1.5.5:
+    dependencies:
+      '@msgpack/msgpack': 2.8.0
+      eventemitter3: 4.0.7
+      peerjs-js-binarypack: 2.1.0
+      webrtc-adapter: 9.0.6
+
+  sdp@3.2.3: {}
+
+  thunky@1.1.0: {}
+
+  undici-types@8.9.0: {}
+
+  webrtc-adapter@9.0.6:
+    dependencies:
+      sdp: 3.2.3
+
+  werift@0.28.0:
+    dependencies:
+      buffer: 6.0.3
+      mediabunny: 1.66.4
+      multicast-dns: 7.2.5
+
+  ws@8.22.0(bufferutil@4.2.0):
+    optionalDependencies:
+      bufferutil: 4.2.0
