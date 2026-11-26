@@ -45,7 +45,7 @@ async function main() {
       process.exit(0)
     }
   })
-  await room.ready
+  await room.getSelf()
   if (process.connected) process.send({ type: 'ready' })
 }
 
