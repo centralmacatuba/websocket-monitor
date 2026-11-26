@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { buildServiceSummary, calculateUptime, classifyService, makeBadgeSvg } from '../src/status-data.js'
+import { buildServiceSummary, calculateUptime, classifyService, effectiveIntervalMinutes, makeBadgeSvg } from '../src/status-data.js'
 
 const now = Date.UTC(2026, 10, 25, 12)
 const config = { id: 'eaglercraft-wisp', name: 'Wisp', expectedIntervalMinutes: 5, degradedLatencyMs: 2000 }
@@ -63,4 +63,12 @@ test('generates a safe SVG badge with escaped text', () => {
   const svg = makeBadgeSvg('status', '<down>', '#cf222e')
   assert.match(svg, /&lt;down&gt;/)
   assert.match(svg, /<svg/)
+})
+
+test('uses the actual five-minute scheduler cadence for status freshness', () => {
+  assert.equal(effectiveIntervalMinutes(5), 5)
+  assert.equal(effectiveIntervalMinutes(10), 10)
+  assert.equal(effectiveIntervalMinutes(11), 15)
+  assert.equal(effectiveIntervalMinutes(60), 60)
+  assert.equal(effectiveIntervalMinutes('invalid'), 5)
 })
