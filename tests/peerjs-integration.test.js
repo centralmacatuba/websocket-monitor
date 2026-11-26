@@ -59,7 +59,7 @@ test('PeerJS probe completes a real raw-data round-trip against the official loc
   const baseUrl = `http://127.0.0.1:${port}/peerjs`
   const child = spawn('pnpm', [
     'dlx',
-    'peer@1.0.2',
+    '--package=peer@1.0.2',
     'peerjs',
     '--port', String(port),
     '--key', 'peerjs',
