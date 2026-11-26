@@ -8,7 +8,7 @@ let room
 
 async function main() {
   room = joinRoom({
-    appId: 'prismarine-web-client',
+    appId: 'centralmacatuba-websocket-monitor',
     identity: 'none',
     maxUsers: 2,
     rtcPolyfill: RTCPeerConnection,
