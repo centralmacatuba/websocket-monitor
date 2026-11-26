@@ -4,25 +4,25 @@
   "expectedIntervalMinutes": 5,
   "services": [
     {
-      "id": "trystero",
+      "id": "mcraft-p2p",
       "name": "Mcraft P2P (Trystero)",
       "expectedIntervalMinutes": 5,
       "degradedLatencyMs": 3000
     },
     {
-      "id": "eaglercraft",
+      "id": "eaglercraft-relay",
       "name": "EaglerCraft Relay",
       "expectedIntervalMinutes": 5,
       "degradedLatencyMs": 2000
     },
     {
-      "id": "peerjs",
+      "id": "mcraft-p2p-peerjs",
       "name": "Mcraft P2P (PeerJS legado)",
       "expectedIntervalMinutes": 5,
       "degradedLatencyMs": 3000
     },
     {
-      "id": "wisp",
+      "id": "eaglercraft-wisp",
       "name": "EaglerCraft Wisp",
       "expectedIntervalMinutes": 5,
       "degradedLatencyMs": 2000
