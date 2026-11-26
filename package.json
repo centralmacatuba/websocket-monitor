@@ -17,7 +17,7 @@
   "dependencies": {
     "@mercuryworkshop/wisp-js": "0.5.3",
     "@trystero-p2p/ws-relay": "0.26.0",
-    "peerjs": "1.5.5",
+    "peerjs": "1.5.4",
     "werift": "0.28.0",
     "ws": "8.22.0"
   },
