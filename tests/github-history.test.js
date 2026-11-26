@@ -42,7 +42,7 @@ test('closes an active incident after recovery', async () => {
 
 test('daily snapshots are idempotent for the same UTC date', async () => {
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 12, title: '[WebSocket Monitor][Metrics] Daily health history', body: '<!-- websocket-monitor-last-daily:2026-11-25 -->' }] },
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 12, title: '[WebSocket Monitor][Metrics] Daily health history', body: '<!-- websocket-monitor-last-daily:wisp:2026-11-25 -->' }] },
   ])
   const result = await recordDailySnapshot([{ service: 'wisp', name: 'Wisp', ok: true, elapsedMs: 12 }], env, {
     fetchImpl,
@@ -54,4 +54,44 @@ test('daily snapshots are idempotent for the same UTC date', async () => {
 
 test('history publishing is skipped safely without a token or repository', async () => {
   assert.deepEqual(await publishGitHubHistory([], {}), { skipped: true })
+})
+
+test('creates the metrics issue with the first daily snapshot included', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 15 } },
+  ])
+  await recordDailySnapshot([{ service: 'wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+    fetchImpl,
+    now: Date.UTC(2026, 10, 25, 12),
+  })
+  assert.equal(calls.length, 2)
+  assert.match(calls[1].options.body, /\| Wisp \| UP \| 18 ms \| 1 \|/)
+  assert.match(calls[1].options.body, /websocket-monitor-last-daily:wisp:2026-11-25/)
+})
+
+test('records each service once per UTC day without suppressing other services', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{
+      number: 12,
+      title: '[WebSocket Monitor][Metrics] Daily health history',
+      body: '<!-- websocket-monitor-last-daily:wisp:2026-11-25 -->',
+    }] },
+    { match: (url) => url.endsWith('/issues/12/comments'), status: 201, body: {} },
+    { match: (url) => url.endsWith('/issues/12'), status: 200, body: {} },
+  ])
+  const result = await recordDailySnapshot([
+    { service: 'wisp', name: 'Wisp', ok: true, elapsedMs: 12 },
+    { service: 'peerjs', name: 'PeerJS', ok: true, elapsedMs: 21 },
+  ], env, { fetchImpl, now: Date.UTC(2026, 10, 25, 12) })
+  assert.deepEqual(result, { skipped: false, issueNumber: 12 })
+  assert.match(calls[1].options.body, /PeerJS/)
+  assert.match(calls[2].options.body, /websocket-monitor-last-daily:peerjs:2026-11-25/)
+})
+
+test('does not create an empty daily snapshot when no service was checked', async () => {
+  const { fetchImpl, calls } = mockFetch([])
+  const result = await recordDailySnapshot([{ service: 'wisp', name: 'Wisp', status: 'not_due' }], env, { fetchImpl })
+  assert.deepEqual(result, { skipped: true, reason: 'no-checks' })
+  assert.equal(calls.length, 0)
 })
