@@ -94,3 +94,21 @@ test('does not open a false incident during a scheduled maintenance window', asy
   })
   assert.equal(calls.length, 1)
 })
+
+test('persists check samples even when incident notification creation fails', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('[WebSocket Monitor][DOWN]'), status: 500, body: {} },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('[WebSocket Monitor][Metrics]'), status: 201, body: { number: 18 } },
+    { match: (url) => url.includes('/issues/18/comments?'), status: 200, body: [] },
+    { match: (url) => url.endsWith('/issues/18/comments'), status: 201, body: { id: 101 } },
+  ])
+  await assert.rejects(
+    publishGitHubHistory([{ service: 'wisp', name: 'Wisp', ok: false, elapsedMs: null, attempts: 8 }], env, {
+      fetchImpl,
+      now: Date.UTC(2026, 10, 25, 12),
+    }),
+    /synchronization was incomplete/,
+  )
+  assert.ok(calls.some((call) => call.url.endsWith('/issues/18/comments')))
+})
