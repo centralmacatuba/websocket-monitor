@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+
 const API_VERSION = '2022-11-28'
 const METRICS_TITLE = '[WebSocket Monitor][Metrics] Daily health history'
 const SERIES_MARKER = (service, date) => `<!-- websocket-monitor-series:v1:${service}:${date} -->`
@@ -46,6 +48,11 @@ export async function syncIncidents(results, env = process.env, options = {}) {
 
   for (const result of results) {
     if (!result.service || result.status === 'disabled' || result.status === 'not_due' || result.status === 'misconfigured') continue
+    const plannedMaintenance = (options.maintenances ?? []).some((item) =>
+      (item.service === result.service || item.service === 'all') &&
+      Date.parse(item.startsAt) <= now && Date.parse(item.endsAt) >= now,
+    )
+    if (plannedMaintenance && result.ok === false) continue
     const title = incidentTitle(result)
     const active = issues.find((issue) => issue.title === title)
     if (result.ok === false && !active) {
@@ -137,7 +144,14 @@ export async function recordDailySnapshot(results, env = process.env, options = 
 
 export async function publishGitHubHistory(results, env = process.env, options = {}) {
   if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) return { skipped: true }
-  const incidents = await syncIncidents(results, env, options)
+  let maintenances = options.maintenances
+  if (!maintenances) {
+    try {
+      const file = await readFile(new URL('../status-page/maintenance.json', import.meta.url), 'utf8')
+      maintenances = JSON.parse(file).maintenances ?? []
+    } catch { maintenances = [] }
+  }
+  const incidents = await syncIncidents(results, env, { ...options, maintenances })
   const history = await recordCheckHistory(results, env, options)
   return { incidents, history }
 }
