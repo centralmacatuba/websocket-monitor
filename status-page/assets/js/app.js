@@ -83,7 +83,7 @@ async function load() {
   $('#refresh').disabled = true
   try {
     const [status, history, incidents, maintenance] = await Promise.all(['status.json','history.json','incidents.json','../maintenance.json'].map(async (file) => {
-      const url = file === '../maintenance.json' ? new URL(file, import.meta.url) : new URL(`./data/${file}`, import.meta.url)
+      const url = file === '../maintenance.json' ? new URL('../../maintenance.json', import.meta.url) : new URL(`./data/${file}`, import.meta.url)
       const response = await fetch(url, { cache: 'no-store' })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.json()
