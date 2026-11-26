@@ -14,11 +14,11 @@ async function main() {
     rtcPolyfill: RTCPeerConnection,
     relayConfig: { urls: [url], warnOnRelayFailure: false },
   }, roomId)
-  const [send, onMessage] = room.makeAction('cm-monitor-health')
+  const action = room.makeAction('cm-monitor-health')
   const timer = setTimeout(() => process.exit(2), timeoutMs)
-  onMessage(async (message) => {
+  action.onMessage(async (message) => {
     if (message?.kind !== 'probe' || typeof message.nonce !== 'string') return
-    await send({ kind: 'ack', nonce: message.nonce })
+    await action.send({ kind: 'ack', nonce: message.nonce })
     clearTimeout(timer)
     await room.leave()
     if (process.connected) process.send({ type: 'done' })
