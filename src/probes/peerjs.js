@@ -8,7 +8,7 @@ function withTimeout(promise, timeoutMs, message) {
   ]).finally(() => clearTimeout(timer))
 }
 
-function parsePeerServerUrl(value) {
+export function parsePeerServerUrl(value) {
   const url = new URL(value)
   if (!['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) || !url.hostname || url.username || url.password || url.hash) {
     throw new Error('Invalid PeerJS endpoint')
