@@ -31,14 +31,14 @@ function toBuffer(value) {
 }
 
 /** PeerJS-compatible registration and raw data-channel round-trip using the MWC-era API. */
-export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
+export async function checkPeerJs(url, { timeoutMs = 15_000, PeerClass, installPolyfillImpl } = {}) {
   const startedAt = Date.now()
   const options = parsePeerServerUrl(url)
 
   // PeerJS is browser-first. Install werift's browser-compatible WebRTC globals
   // before importing PeerJS so its runtime feature detection sees the API.
   globalThis.window ??= globalThis
-  const { installPolyfill } = await import('werift/polyfill')
+  const { installPolyfill } = installPolyfillImpl ? { installPolyfill: installPolyfillImpl } : await import('werift/polyfill')
   const uninstallPolyfill = installPolyfill({
     mediaRegister: [],
     peerConnectionConfig: { compatibility: 'standard', iceServers: [], iceUseDefaultStunServer: false },
@@ -49,7 +49,7 @@ export async function checkPeerJs(url, { timeoutMs = 15_000 } = {}) {
   let outgoing
 
   try {
-    const { Peer } = await import('peerjs')
+    const Peer = PeerClass ?? (await import('peerjs')).Peer
     const peerOptions = { ...options, debug: 0, config: { iceServers: [], iceUseDefaultStunServer: false } }
     receiver = new Peer(undefined, peerOptions)
     sender = new Peer(undefined, peerOptions)
