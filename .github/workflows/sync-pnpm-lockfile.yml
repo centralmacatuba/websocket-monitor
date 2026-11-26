@@ -1,11 +1,6 @@
 name: Sync pnpm lockfile
 
 on:
-  push:
-    branches-ignore:
-      - principal
-    paths:
-      - package.json
   workflow_dispatch:
 
 permissions:
