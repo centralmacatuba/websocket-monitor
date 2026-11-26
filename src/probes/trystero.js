@@ -33,11 +33,11 @@ function withTimeout(promise, timeoutMs, message) {
  * room, then validate an action round-trip. The signaling URL is the same relay
  * endpoint configured by the Mcraft client. No TURN credentials are required.
  */
-export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
+export async function checkTrystero(url, { timeoutMs = 15_000, joinRoomImpl = joinRoom, forkImpl = fork } = {}) {
   const roomId = `cm-monitor-${randomBytes(18).toString('hex')}`
   const nonce = randomBytes(18).toString('hex')
   const startedAt = Date.now()
-  const child = fork(workerPath, [], {
+  const child = forkImpl(workerPath, [], {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
@@ -59,7 +59,7 @@ export async function checkTrystero(url, { timeoutMs = 15_000 } = {}) {
       child.once('exit', (code) => { if (code !== 0) rejectReady(new Error('Trystero worker exited during startup')) })
     }), timeoutMs, 'Trystero peer startup timed out')
 
-    room = joinRoom({
+    room = joinRoomImpl({
       appId: APP_ID,
       identity: 'none',
       maxUsers: 2,
