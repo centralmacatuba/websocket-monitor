@@ -1,0 +1,80 @@
+name: Publish Status Page
+
+on:
+  workflow_run:
+    workflows:
+      - WebSocket Relay Monitor
+    types:
+      - completed
+    branches:
+      - principal
+  workflow_dispatch:
+  push:
+    branches:
+      - principal
+    paths:
+      - status-page/**
+      - scripts/build-status-data.js
+      - src/status-data.js
+      - .github/workflows/status-page.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: websocket-monitor-status-page
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build public status data
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'principal' &&
+       (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: principal
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Generate status metrics and badges
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/build-status-data.js
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: status-page
+
+  deploy:
+    name: Deploy public status page
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
