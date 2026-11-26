@@ -47,7 +47,8 @@ async function runService(service, url, options) {
     probe = service.probe,
   } = options
 
-  const startedAt = Date.now()\n  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  const startedAt = Date.now()
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const result = await probe(url, { timeoutMs })
       safeLog(log, 'info', `[UP] ${service.name}: transporte + protocolo OK (${result.elapsedMs ?? 0} ms; tentativa ${attempt}/${maxAttempts})`)
