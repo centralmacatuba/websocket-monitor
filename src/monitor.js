@@ -31,7 +31,9 @@ export function isIntervalDue(intervalMinutes, now = Date.now()) {
   // GitHub scheduled workflows have a five-minute minimum cadence.
   const effectiveInterval = Math.max(5, Math.ceil(intervalMinutes / 5) * 5)
   const minute = Math.floor(now / 60_000)
-  return minute % effectiveInterval === 0
+  // A scheduled run may start a few minutes after its cron boundary.
+  // The five-minute scheduler tick owns the first five minutes of each interval.
+  return minute % effectiveInterval < 5
 }
 
 function safeLog(log, level, message) {
