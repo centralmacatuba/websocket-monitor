@@ -53,6 +53,8 @@ Exemplos:
 
 Não inclua credenciais ou tokens nas URLs. Os logs não imprimem endpoints, payloads, IDs temporários ou mensagens recebidas.
 
+**Atenção a URLs de Preview do Render:** URLs geradas para pull requests são temporárias e podem deixar de existir quando o PR é encerrado. Elas são úteis para validar uma branch em execução, mas não devem ser tratadas como endpoint de produção. Para monitoramento de produção, use a URL do serviço principal somente depois que o deploy principal estiver concluído e saudável.
+
 ## Incidentes, histórico e notificações
 
 O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou serviço pago adicional:
