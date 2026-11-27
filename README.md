@@ -183,3 +183,8 @@ Consulte [SECURITY.md](SECURITY.md) para saber como reportar vulnerabilidades de
 ### Sincronização manual do lockfile
 
 O workflow Sync pnpm lockfile é acionado somente por execução manual (workflow_dispatch). Após alterar dependências no package.json, execute-o na branch de trabalho e revise o diff de `pnpm-lock.yaml` antes de continuar; ele não dispara automaticamente em cada push.
+
+
+### Isolamento de processos das probes
+
+As probes PeerJS e Trystero executam os clientes de protocolo em processos filhos descartáveis. Isso garante que respostas tardias de registro, sockets e timers de reconexão não mantenham o processo principal ativo após timeout ou conclusão da verificação. No Trystero, tanto o iniciador quanto o respondedor são isolados; no PeerJS, o processo da tentativa inteira é encerrado ao terminar o round-trip ou exceder o prazo.
