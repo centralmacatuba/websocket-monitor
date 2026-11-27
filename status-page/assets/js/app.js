@@ -81,7 +81,7 @@ function renderMaintenances(items) {
 
 function renderIncidents(incidents) {
   $('#incident-count').textContent = `${incidents.length} registros`
-  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></strong><p>${escapeHtml(item.serviceName ?? 'Serviço')} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
+  $('#incidents').innerHTML = incidents.length ? incidents.slice(0, 30).map((item) => `<article class="incident-card"><div><strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></strong><p>${escapeHtml(item.serviceName ?? 'Serviço')} · Início: ${dateTime(item.startedAt)} · ${item.duration ?? 'Duração em andamento'}${item.failureCode ? ' · Diagnóstico: ' + escapeHtml(item.failureCode) : ''}</p></div><span class="incident-state ${item.state === 'closed' ? 'resolved' : ''}">${item.state === 'closed' ? 'RESOLVIDO' : 'EM ANDAMENTO'}</span></article>`).join('') : '<p class="empty">Nenhum incidente registrado no histórico.</p>'
 }
 
 function renderBadges(badges) {
