@@ -188,3 +188,49 @@ O workflow Sync pnpm lockfile é acionado somente por execução manual (workflo
 ### Isolamento de processos das probes
 
 As probes PeerJS e Trystero executam os clientes de protocolo em processos filhos descartáveis. Isso garante que respostas tardias de registro, sockets e timers de reconexão não mantenham o processo principal ativo após timeout ou conclusão da verificação. No Trystero, tanto o iniciador quanto o respondedor são isolados; no PeerJS, o processo da tentativa inteira é encerrado ao terminar o round-trip ou exceder o prazo.
+
+
+## Notificações externas
+
+As notificações são enviadas somente quando um incidente é confirmado ou recuperado. Os destinos suportados são **Discord, Telegram e webhook personalizado**; não há integrações com e-mail, Slack ou outros serviços.
+
+| Destino | Actions Variable | Actions Secret |
+|---|---|---|
+| Discord | `WS_NOTIFY_DISCORD_ENABLED` | `WS_NOTIFY_DISCORD_WEBHOOK_URL` |
+| Telegram | `WS_NOTIFY_TELEGRAM_ENABLED`, `WS_NOTIFY_TELEGRAM_CHAT_ID` | `WS_NOTIFY_TELEGRAM_BOT_TOKEN` |
+| Webhook personalizado | `WS_NOTIFY_WEBHOOK_ENABLED` | `WS_NOTIFY_WEBHOOK_URL`, opcionalmente `WS_NOTIFY_WEBHOOK_SECRET` |
+
+Os três toggles aceitam `true` ou `false` e, por padrão, ficam desativados. Mesmo com o toggle ativado, a integração precisa ter suas credenciais completas. Cada destino é chamado independentemente: uma falha no Discord, por exemplo, não impede Telegram ou webhook. O tempo limite padrão é de 8 segundos e pode ser ajustado por `WS_NOTIFY_TIMEOUT_MS` (máximo de 15 segundos).
+
+O webhook personalizado recebe um POST JSON com o schema `centralmacatuba.websocket-monitor.v1`, evento `incident.opened` ou `incident.recovered`, serviço, horário UTC, tentativas, categoria de falha e link da issue. Quando `WS_NOTIFY_WEBHOOK_SECRET` é definido, a requisição inclui `X-CM-Webhook-Signature: sha256=<hex>`, HMAC-SHA256 calculado sobre o corpo JSON exato. O endpoint precisa usar HTTPS; HTTP é aceito somente para localhost em testes. O monitor não envia URLs dos relays, tokens ou payloads de protocolo.
+
+### Confirmação de incidentes e responsáveis
+
+Por padrão, são necessárias **duas verificações consecutivas com falha** antes de abrir um incidente e disparar notificações. Uma recuperação é registrada assim que uma verificação posterior passa. Configure `WS_INCIDENT_CONFIRMATION_FAILURES` entre 1 e 10 para alterar o limite. A confirmação consulta as amostras reais já persistidas no histórico; não inventa verificações nem adiciona atrasos artificiais.
+
+Os responsáveis podem ser definidos por serviço com a variável `WS_MONITOR_ASSIGNEES_JSON`, cujo valor é um objeto JSON com IDs de serviço e arrays de logins GitHub. Exemplo:
+
+```json
+{
+  "mcraft-p2p": ["usuario"],
+  "eaglercraft-relay": [],
+  "mcraft-p2p-peerjs": [],
+  "eaglercraft-wisp": []
+}
+```
+
+Os arrays são opcionais, logins inválidos são ignorados e cada issue aceita no máximo dez responsáveis. O valor padrão é `{}`; nenhum usuário é atribuído automaticamente sem configuração explícita.
+
+### Diagnóstico das falhas
+
+As verificações registram categorias estáveis, sem imprimir mensagens brutas de exceções ou dados de conexão: `connection_timeout`, `negotiation_timeout`, `protocol_version_mismatch`, `message_parse_error`, `connection_closed`, `websocket_error` ou `probe_failed`. A categoria da última tentativa é adicionada à amostra histórica e ao corpo do incidente.
+
+## Status Page como PWA
+
+A Status Page inclui manifest, ícone vetorial, botão de instalação quando o navegador oferece suporte, service worker e fallback offline. O service worker armazena apenas o shell estático; **status.json, history.json, incidents.json e maintenance.json nunca são servidos do cache**, evitando apresentar dados antigos como atuais. Sem conexão, a página informa que os dados de disponibilidade precisam ser atualizados online.
+
+A instalação depende de HTTPS e dos critérios do navegador. No domínio customizado, mantenha o HTTPS habilitado no GitHub Pages.
+
+## Escopo de verificações regionais
+
+O monitor continua executando as probes reais de protocolo a partir do runner do GitHub Actions. Uma futura verificação distribuída pode complementar isso com testes de DNS/TCP/latência a partir de outras regiões, mas esses resultados devem aparecer como diagnóstico de conectividade separado: não serão contabilizados como uptime de protocolo nem substituirão as probes Trystero, PeerJS, EaglerSPRelay ou Wisp.
