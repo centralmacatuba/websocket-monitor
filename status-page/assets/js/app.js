@@ -1,3 +1,5 @@
+import { applyServiceFreshness } from './freshness.js'
+
 const $ = (selector) => document.querySelector(selector) 
 const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
 const statusLabels = { operational: 'Operacional', degraded: 'Desempenho degradado', down: 'Indisponível', maintenance: 'Em manutenção', unknown: 'Sem dados recentes' }
@@ -7,16 +9,7 @@ const dateTime = (value) => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle
 
 function applyFreshness(status) {
   const now = Date.now()
-  const services = (status.services ?? []).map((service) => {
-    const lastCheckedAt = Date.parse(service.lastCheckedAt)
-    const staleAfterMs = Number(service.staleAfterMs)
-    const maintenanceEndsAt = Date.parse(service.maintenance?.endsAt)
-    const maintenanceEnded = service.status === 'maintenance' && Number.isFinite(maintenanceEndsAt) && maintenanceEndsAt <= now
-    if (maintenanceEnded || (service.status !== 'maintenance' && (!Number.isFinite(lastCheckedAt) || !Number.isFinite(staleAfterMs) || now - lastCheckedAt > staleAfterMs))) {
-      return { ...service, status: 'unknown', statusReason: 'stale-data' }
-    }
-    return service
-  })
+  const services = (status.services ?? []).map((service) => applyServiceFreshness(service, now))
   const priority = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
   const overallStatus = priority.find((candidate) => services.some((service) => service.status === candidate)) ?? 'unknown'
   return { ...status, services, overallStatus }
