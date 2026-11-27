@@ -53,7 +53,7 @@ jobs:
 
       - name: Generate status metrics and badges
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CM_GITHUB_TOKEN }}
           WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
           WS_INCIDENT_CONFIRMATION_FAILURES: ${{ vars.WS_INCIDENT_CONFIRMATION_FAILURES }}
           MCRAFT_P2P_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_MONITOR_INTERVAL_MINUTES }}
