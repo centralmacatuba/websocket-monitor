@@ -42,7 +42,7 @@ jobs:
 
       - name: Check configured protocols
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CM_GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           WS_MONITOR_ENABLED: ${{ vars.WS_MONITOR_ENABLED }}
           WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
