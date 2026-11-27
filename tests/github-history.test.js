@@ -64,7 +64,7 @@ test('appends a check to an existing series comment without duplicating timestam
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
   const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: '[WebSocket Monitor][Metrics] Daily health history', state: 'open' }] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: '[WebSocket Monitor][Metrics] Daily health history', state: 'open', user: { login: 'github-actions[bot]' } }] },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body }] },
     { match: (url) => url.endsWith('/issues/comments/100'), status: 200, body: {} },
   ])
@@ -153,7 +153,7 @@ test('ignores history comments authored by users other than the trusted monitor 
 
 test('reopens a closed metrics issue instead of creating a duplicate', async () => {
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'closed' }] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'closed', user: { login: 'github-actions[bot]' } }] },
     { match: (url) => url.endsWith('/issues/15') && url.includes('/repos/owner/repo'), status: 200, body: {} },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues/15/comments') && options.method === 'POST', status: 201, body: { id: 101 } },
@@ -186,8 +186,10 @@ test('history pagination continues beyond the former twenty-page cap', async () 
 })
 
 test('writer and status-page lookup share the same canonical metrics issue title', () => {
-  const issue = { number: 44, title: METRICS_ISSUE_TITLE }
+  const issue = { number: 44, title: METRICS_ISSUE_TITLE, user: { login: 'github-actions[bot]' } }
   assert.equal(findMetricsIssue([{ pull_request: {}, ...issue }, issue]), issue)
+  assert.equal(findMetricsIssue([{ ...issue, user: { login: 'untrusted-user' } }, issue]), issue)
+  assert.equal(findMetricsIssue([{ ...issue, user: { login: 'untrusted-user' } }]), null)
   assert.equal(findMetricsIssue([{ title: '[WebSocket Monitor][Metrics] Histórico diário de saúde' }]), null)
 })
 
@@ -208,7 +210,7 @@ test('incident synchronization paginates before deciding an issue is absent', as
 
 test('metrics history lookup paginates issues and comments before creating a series', async () => {
   const issuePage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
-  const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE, state: 'open' }
+  const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE, state: 'open', user: { login: 'github-actions[bot]' } }
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
   const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const commentPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `unrelated ${index}` }))
