@@ -69,30 +69,39 @@ export async function checkTrystero(url, { timeoutMs = 15_000, joinRoomImpl = jo
     }, roomId)
     const action = room.makeAction('cm-monitor-health')
 
-    const ack = withTimeout(new Promise((resolveAck, rejectAck) => {
-      let timer
-      let settled = false
-      const settle = (error) => {
-        if (settled) return
-        settled = true
-        clearTimeout(timer)
-        if (error) rejectAck(error)
-        else resolveAck()
-      }
-      timer = setTimeout(() => settle(new Error('Trystero peer exchange timed out')), timeoutMs)
-      action.onMessage((message) => {
-        if (message?.kind === 'ack' && message.nonce === nonce) settle()
-      })
-      room.onUserJoin(async () => {
-        try { await action.send({ kind: 'probe', nonce }) } catch (error) { settle(error) }
-      })
-      child.once('exit', (code) => {
-        if (code !== 0) settle(new Error('Trystero worker exited before acknowledgement'))
-      })
-    }), timeoutMs + 1_000, 'Trystero peer exchange timed out')
+    let resolveAck, rejectAck
+    let ackSettled = false
+    const ackPromise = new Promise((resolve, reject) => {
+      resolveAck = resolve
+      rejectAck = reject
+    })
+    // Observe failures immediately: startup can fail before the ACK is awaited.
+    ackPromise.catch(() => {})
+    const settleAck = (error) => {
+      if (ackSettled) return
+      ackSettled = true
+      if (error) rejectAck(error)
+      else resolveAck()
+    }
+    const onChildExit = (code) => {
+      if (code !== 0) settleAck(new Error('Trystero worker exited before acknowledgement'))
+    }
+    child.once('exit', onChildExit)
+    action.onMessage = (message) => {
+      if (message?.kind === 'ack' && message.nonce === nonce) settleAck()
+    }
+    room.onPeerJoin = async () => {
+      try { await action.send({ kind: 'probe', nonce }) } catch (error) { settleAck(error) }
+    }
 
-    await Promise.all([room.getSelf(), childReady])
-    await ack
+    try {
+      await childReady
+      await withTimeout(ackPromise, timeoutMs, 'Trystero peer exchange timed out')
+    } finally {
+      child.off('exit', onChildExit)
+      action.onMessage = null
+      room.onPeerJoin = null
+    }
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
     if (room) { try { await room.leave() } catch {} }
