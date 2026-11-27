@@ -72,8 +72,9 @@ async function runService(service, url, options) {
       const elapsedMs = Number.isFinite(result.elapsedMs) ? result.elapsedMs : Date.now() - attemptStartedAt
       safeLog(log, 'info', `[UP] ${service.name}: transporte + protocolo OK (${elapsedMs} ms; tentativa ${attempt}/${effectiveMaxAttempts})`)
       return { ok: true, service: service.id, name: service.name, attempts: attempt, ...result, elapsedMs }
-    } catch {
-      safeLog(log, 'warn', `[DOWN] ${service.name}: falha de protocolo/transporte (tentativa ${attempt}/${effectiveMaxAttempts})`)
+    } catch (error) {
+      lastFailureCode = classifyProbeError(error)
+      safeLog(log, 'warn', `[DOWN] ${service.name}: ${lastFailureCode} (tentativa ${attempt}/${effectiveMaxAttempts})`)
       if (attempt < effectiveMaxAttempts) await new Promise((resolveSleep) => setTimeout(resolveSleep, effectiveRetryDelayMs))
     }
   }
