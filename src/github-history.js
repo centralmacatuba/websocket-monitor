@@ -86,11 +86,14 @@ export async function syncIncidents(results, env = process.env, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch
   const apiUrl = env.GITHUB_API_URL ?? 'https://api.github.com'
   const now = options.now ?? Date.now()
-  const allIssues = await githubRequestAllPages(\`\${repository}/issues?state=all&sort=updated&direction=desc\`, token, fetchImpl, apiUrl)
-  const issues = allIssues.filter((issue) => !issue.pull_request && issue.state === 'open')
+  const openIssues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
+  const issues = openIssues.filter((issue) => !issue.pull_request)
   const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
-  const metricsIssue = findMetricsIssue(allIssues, trustedAuthor)
   const confirmationFailures = Math.min(10, Math.max(1, Number.parseInt(env.WS_INCIDENT_CONFIRMATION_FAILURES || '2', 10) || 2))
+  const allIssues = confirmationFailures > 1
+    ? await githubRequestAllPages(`${repository}/issues?state=all&sort=updated&direction=desc`, token, fetchImpl, apiUrl)
+    : []
+  const metricsIssue = findMetricsIssue(allIssues, trustedAuthor)
   const events = []
 
   for (const result of results) {
