@@ -31,7 +31,7 @@ function toBuffer(value) {
 }
 
 /** PeerJS-compatible registration and raw data-channel round-trip using the MWC-era API. */
-export async function checkPeerJs(url, { timeoutMs = 15_000, PeerClass, installPolyfillImpl } = {}) {
+export async function checkPeerJsInProcess(url, { timeoutMs = 15_000, PeerClass, installPolyfillImpl } = {}) {
   const startedAt = Date.now()
   const options = parsePeerServerUrl(url)
 
@@ -117,5 +117,53 @@ export async function checkPeerJs(url, { timeoutMs = 15_000, PeerClass, installP
     try { sender?.destroy() } catch {}
     try { receiver?.destroy() } catch {}
     uninstallPolyfill()
+  }
+}
+
+
+/**
+ * Run the PeerJS probe in a disposable child process. PeerJS can resolve
+ * retrieveId() after a timeout; process isolation guarantees late sockets and
+ * heartbeat timers cannot keep the monitor alive or survive cleanup.
+ */
+export async function checkPeerJs(url, options = {}) {
+  if (options.PeerClass || options.installPolyfillImpl) {
+    return checkPeerJsInProcess(url, options)
+  }
+
+  const { fork } = await import('node:child_process')
+  const { fileURLToPath } = await import('node:url')
+  const { dirname, resolve } = await import('node:path')
+  const workerPath = resolve(dirname(fileURLToPath(import.meta.url)), 'peerjs-worker.js')
+  const timeoutMs = options.timeoutMs ?? 15_000
+  const child = fork(workerPath, [], {
+    env: {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      NODE_OPTIONS: process.env.NODE_OPTIONS,
+      NODE_EXTRA_CA_CERTS: process.env.NODE_EXTRA_CA_CERTS,
+    },
+    stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+  })
+
+  try {
+    const result = await new Promise((resolveResult, rejectResult) => {
+      const timer = setTimeout(() => rejectResult(new Error('PeerJS probe process timed out')), timeoutMs + 2_000)
+      const cleanup = () => clearTimeout(timer)
+      child.once('message', (message) => {
+        cleanup()
+        if (message?.type === 'result') resolveResult(message.result)
+        else rejectResult(new Error(message?.error || 'PeerJS probe process failed'))
+      })
+      child.once('error', (error) => { cleanup(); rejectResult(error) })
+      child.once('exit', (code) => {
+        cleanup()
+        if (code !== 0) rejectResult(new Error('PeerJS probe process exited unexpectedly'))
+      })
+      child.send({ type: 'probe', url, timeoutMs })
+    })
+    return result
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
   }
 }
