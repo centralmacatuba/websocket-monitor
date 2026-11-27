@@ -106,6 +106,7 @@ test('does not open a false incident during a scheduled maintenance window', asy
 test('persists check samples even when incident notification creation fails', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('[WebSocket Monitor][DOWN]'), status: 500, body: {} },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('[WebSocket Monitor][Metrics]'), status: 201, body: { number: 18 } },
     { match: (url) => url.includes('/issues/18/comments?'), status: 200, body: [] },
@@ -132,6 +133,51 @@ test('does not suppress incidents for a maintenance window marked completed', as
     maintenances: [{ service: 'eaglercraft-wisp', status: 'completed', startsAt: '2026-11-25T11:00:00.000Z', endsAt: '2026-11-25T13:00:00.000Z' }],
   })
   assert.equal(calls.length, 2)
+})
+
+
+test('ignores history comments authored by users other than the trusted monitor identity', async () => {
+  const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
+  const body = `${marker}\\n\\n\\`\\`\\`json\\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\\n\\`\\`\\`
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'open' }] },
+    { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body, user: { login: 'untrusted-user' } }] },
+    { match: (url, options) => url.endsWith('/issues/15/comments') && options.method === 'POST', status: 201, body: { id: 101 } },
+  ])
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+    fetchImpl, now: Date.UTC(2026, 10, 25, 12),
+  })
+  assert.equal(result.writes[0].action, 'created')
+  assert.equal(calls.length, 3)
+})
+
+test('reopens a closed metrics issue instead of creating a duplicate', async () => {
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'closed' }] },
+    { match: (url) => url.endsWith('/issues/15') && url.includes('/repos/owner/repo'), status: 200, body: {} },
+    { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues/15/comments') && options.method === 'POST', status: 201, body: { id: 101 } },
+  ])
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+    fetchImpl, now: Date.UTC(2026, 10, 25, 12),
+  })
+  assert.equal(result.issueNumber, 15)
+  assert.equal(calls.length, 4)
+  assert.match(calls[1].options.body, /"state":"open"/)
+})
+
+test('history pagination continues beyond the former twenty-page cap', async () => {
+  const pages = Array.from({ length: 21 }, (_, index) => ({
+    match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc') && new URL(url).searchParams.get('page') === String(index + 1),
+    status: 200,
+    body: index < 20 ? Array.from({ length: 100 }, (_, item) => ({ number: index * 100 + item + 1, title: `unrelated ${index}-${item}` })) : [],
+  }))
+  const { fetchImpl, calls } = mockFetch(pages)
+  const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
+    fetchImpl, now: Date.UTC(2026, 10, 25, 12),
+  })
+  assert.equal(result.writes[0].action, 'created')
+  assert.equal(calls.length, 23)
 })
 
 test('writer and status-page lookup share the same canonical metrics issue title', () => {
