@@ -31,6 +31,9 @@ test('calculates independent UTC schedule intervals', () => {
   assert.equal(isIntervalDue(5, atMinuteTen), true)
   assert.equal(isIntervalDue(10, atMinuteTen), true)
   assert.equal(isIntervalDue(7, atMinuteTen), true)
+  assert.equal(isIntervalDue(5, Date.UTC(2026, 10, 25, 12, 11)), true)
+  assert.equal(isIntervalDue(10, Date.UTC(2026, 10, 25, 12, 14)), true)
+  assert.equal(isIntervalDue(10, Date.UTC(2026, 10, 25, 12, 15)), false)
 })
 
 test('global switch skips all services', async () => {
@@ -73,7 +76,7 @@ test('uses the global interval when a service interval is not set', async () => 
     GITHUB_EVENT_NAME: 'schedule',
   }, {
     log,
-    now: Date.UTC(2026, 10, 25, 12, 10),
+    now: Date.UTC(2026, 10, 25, 12, 11),
     probes: Object.fromEntries(['mcraft-p2p', 'eaglercraft-relay', 'mcraft-p2p-peerjs', 'eaglercraft-wisp'].map((id) => [id, async () => { calls.push(id); return { elapsedMs: 1 } }])),
   })
   assert.equal(code, 0)
