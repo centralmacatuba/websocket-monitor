@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { buildServiceSummary, calculateUptime, classifyService, effectiveIntervalMinutes, makeBadgeSvg } from '../src/status-data.js'
+import { applyServiceFreshness } from '../status-page/assets/js/freshness.js'
 
 const now = Date.UTC(2026, 10, 25, 12)
 const config = { id: 'eaglercraft-wisp', name: 'Wisp', expectedIntervalMinutes: 5, degradedLatencyMs: 2000 }
@@ -75,10 +76,10 @@ test('uses the actual five-minute scheduler cadence for status freshness', () =>
   assert.equal(effectiveIntervalMinutes('invalid', 15), 15)
 })
 
-test('expires a maintenance status at its end timestamp in the browser freshness layer', () => {
-  const maintenance = { endsAt: new Date(now - 1).toISOString() }
-  const lastCheckedAt = new Date(now - 1000).toISOString()
-  const service = { status: 'maintenance', maintenance, lastCheckedAt, staleAfterMs: 900000 }
-  const endsAt = Date.parse(service.maintenance.endsAt)
-  assert.ok(endsAt <= now)
+test('expires maintenance status at endsAt and preserves active maintenance', () => {
+  const active = { status: 'maintenance', maintenance: { endsAt: new Date(now + 1000).toISOString() }, lastCheckedAt: new Date(now - 1000).toISOString(), staleAfterMs: 900000 }
+  const expired = { ...active, maintenance: { endsAt: new Date(now - 1).toISOString() } }
+  assert.equal(applyServiceFreshness(active, now).status, 'maintenance')
+  assert.equal(applyServiceFreshness(expired, now).status, 'unknown')
+  assert.equal(applyServiceFreshness(expired, now).statusReason, 'stale-data')
 })
