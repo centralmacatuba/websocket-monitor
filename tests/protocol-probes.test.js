@@ -86,6 +86,21 @@ test('preserves Wisp query parameters while normalizing the endpoint pathname', 
   await checkWisp('wss://wisp.example.test/wisp?token=private-test', { ClientConnection: QueryClientConnection })
 })
 
+test('routes exceptions from the Wisp WebSocket message handler into probe failure', async () => {
+  class ThrowingMessageConnection {
+    constructor() {
+      this.wisp_version = 2
+      this.ws = { onmessage: () => { throw new Error('malformed Wisp frame') } }
+      queueMicrotask(() => this.ws.onmessage({ data: new Uint8Array([3, 0, 0, 0, 0]) }))
+    }
+    close() {}
+  }
+  await assert.rejects(
+    checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: ThrowingMessageConnection }),
+    /malformed Wisp frame/,
+  )
+})
+
 test('does not let the Wisp client silently reconnect using v1 after a v2 error', async () => {
   let fallbackAttempts = 0
   class FallbackConnection {
