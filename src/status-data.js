@@ -44,6 +44,7 @@ export function classifyService(samples, config, now = Date.now(), maintenances 
 
 export function buildServiceSummary(config, samples, now = Date.now(), maintenances = []) {
   const status = classifyService(samples, config, now, maintenances)
+  const staleAfterMs = Math.max(15, (config.expectedIntervalMinutes ?? 5) * 3) * 60_000
   const metrics = Object.fromEntries(Object.entries(WINDOWS).map(([key, duration]) => [
     key,
     calculateUptime(samples, now, duration, maintenances.filter((item) => item.service === config.id || item.service === 'all')),
@@ -56,6 +57,7 @@ export function buildServiceSummary(config, samples, now = Date.now(), maintenan
     name: config.name,
     status: status.status,
     statusReason: status.reason ?? null,
+    staleAfterMs,
     maintenance: status.maintenance ?? null,
     lastCheckedAt: status.latestSample ? new Date(status.latestSample[0]).toISOString() : null,
     latencyMs: status.latestSample?.[1] === 1 ? status.latestSample[2] : null,
