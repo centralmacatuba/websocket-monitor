@@ -6,13 +6,15 @@
   <meta name="theme-color" content="#111111">
   <meta name="description" content="Status operacional e histórico de disponibilidade dos serviços WebSocket da Central Macatuba.">
   <title>Status dos serviços · WebSocket Monitor</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./assets/css/styles.css">
   <script type="module" src="./assets/js/app.js"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="./" aria-label="WebSocket Monitor — início"><span class="brand-mark">CM</span><span>WEBSOCKET <b>MONITOR</b></span></a>
-    <span class="live-indicator"><i></i> STATUS PÚBLICO</span>
+    <div class="topbar-actions"><button id="install-app" class="text-button" type="button" hidden>Instalar aplicativo</button><span class="live-indicator"><i></i> STATUS PÚBLICO</span></div>
   </header>
   <main class="container">
     <section class="hero">
