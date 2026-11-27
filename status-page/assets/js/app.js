@@ -10,7 +10,9 @@ function applyFreshness(status) {
   const services = (status.services ?? []).map((service) => {
     const lastCheckedAt = Date.parse(service.lastCheckedAt)
     const staleAfterMs = Number(service.staleAfterMs)
-    if (service.status !== 'maintenance' && (!Number.isFinite(lastCheckedAt) || !Number.isFinite(staleAfterMs) || now - lastCheckedAt > staleAfterMs)) {
+    const maintenanceEndsAt = Date.parse(service.maintenance?.endsAt)
+    const maintenanceEnded = service.status === 'maintenance' && Number.isFinite(maintenanceEndsAt) && maintenanceEndsAt <= now
+    if (maintenanceEnded || (service.status !== 'maintenance' && (!Number.isFinite(lastCheckedAt) || !Number.isFinite(staleAfterMs) || now - lastCheckedAt > staleAfterMs))) {
       return { ...service, status: 'unknown', statusReason: 'stale-data' }
     }
     return service
