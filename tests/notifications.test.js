@@ -82,3 +82,16 @@ test('rejects insecure custom webhook URLs without exposing credentials', async 
   }, { fetchImpl: async () => { throw new Error('must not be called') } })
   assert.deepEqual(result.results, [{ destination: 'webhook', ok: false }])
 })
+
+
+test('credentials alone do not enable a notification destination', async () => {
+  let calls = 0
+  const result = await dispatchNotifications(event, {
+    WS_NOTIFY_DISCORD_WEBHOOK_URL: 'https://discord.example.test/webhook',
+    WS_NOTIFY_TELEGRAM_BOT_TOKEN: 'token',
+    WS_NOTIFY_TELEGRAM_CHAT_ID: '123',
+    WS_NOTIFY_WEBHOOK_URL: 'https://hooks.example.test/monitor',
+  }, { fetchImpl: async () => { calls += 1; return { ok: true } } })
+  assert.deepEqual(result, { attempted: 0, results: [] })
+  assert.equal(calls, 0)
+})
