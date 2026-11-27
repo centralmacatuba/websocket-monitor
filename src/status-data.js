@@ -35,7 +35,21 @@ export function classifyService(samples, config, now = Date.now(), maintenances 
   if (!latest) return { status: 'unknown', reason: 'no-data', latestSample: null }
   const staleAfter = Math.max(15, (config.expectedIntervalMinutes ?? 5) * 3) * 60_000
   if (now - latest[0] > staleAfter) return { status: 'unknown', reason: 'stale-data', latestSample: latest }
-  if (latest[1] === 0) return { status: 'down', latestSample: latest }
+  if (latest[1] === 0) {
+    const configuredThreshold = Number(config.incidentConfirmationFailures)
+    const threshold = Number.isSafeInteger(configuredThreshold) && configuredThreshold > 0
+      ? Math.min(10, configuredThreshold)
+      : 1
+    const recent = [...samples].filter((sample) => Array.isArray(sample) && Number.isFinite(sample[0]) && sample[0] <= now)
+      .sort((a, b) => b[0] - a[0])
+    let consecutiveFailures = 0
+    for (const sample of recent) {
+      if (sample[1] !== 0) break
+      consecutiveFailures += 1
+    }
+    if (consecutiveFailures < threshold) return { status: 'unknown', reason: 'pending-confirmation', latestSample: latest }
+    return { status: 'down', latestSample: latest }
+  }
   if (Number.isFinite(config.degradedLatencyMs) && latest[2] > config.degradedLatencyMs) {
     return { status: 'degraded', latestSample: latest }
   }
