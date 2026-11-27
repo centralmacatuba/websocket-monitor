@@ -21,6 +21,7 @@ function mockFetch(routes) {
 }
 
 const env = { GITHUB_TOKEN: 'test-token', GITHUB_REPOSITORY: 'owner/repo', WS_INCIDENT_CONFIRMATION_FAILURES: '1' }
+const defaultEnv = { GITHUB_TOKEN: 'test-token', GITHUB_REPOSITORY: 'owner/repo' }
 
 test('opens one incident issue on DOWN and avoids duplicate notifications', async () => {
   const { fetchImpl, calls } = mockFetch([
@@ -46,7 +47,7 @@ test('requires two consecutive failed samples before opening an incident by defa
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 101, body }] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 99, html_url: 'https://github.com/owner/repo/issues/99' } },
   ])
-  const result = await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8, failureCode: 'connection_timeout' }], env, { fetchImpl, now })
+  const result = await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8, failureCode: 'connection_timeout' }], defaultEnv, { fetchImpl, now })
   assert.equal(result.events.length, 1)
   assert.equal(result.events[0].type, 'incident.opened')
   assert.equal(calls.length, 4)
