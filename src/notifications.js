@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto'
 
-function enabled(value, credentialPresent) {
-  if (typeof value !== 'string' || value.trim() === '') return credentialPresent
+function enabled(value) {
+  if (typeof value !== 'string' || value.trim() === '') return false
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
 }
 
@@ -47,7 +47,7 @@ export async function dispatchNotifications(event, env = process.env, options = 
   const text = notificationText(event)
   const tasks = []
 
-  if (enabled(env.WS_NOTIFY_DISCORD_ENABLED, Boolean(env.WS_NOTIFY_DISCORD_WEBHOOK_URL))) {
+  if (enabled(env.WS_NOTIFY_DISCORD_ENABLED)) {
     if (!env.WS_NOTIFY_DISCORD_WEBHOOK_URL) tasks.push(['discord', async () => { throw new Error('missing configuration') }])
     else tasks.push(['discord', async () => {
       const response = await fetchImpl(safeWebhookUrl(env.WS_NOTIFY_DISCORD_WEBHOOK_URL), {
@@ -60,7 +60,7 @@ export async function dispatchNotifications(event, env = process.env, options = 
     }])
   }
 
-  if (enabled(env.WS_NOTIFY_TELEGRAM_ENABLED, Boolean(env.WS_NOTIFY_TELEGRAM_BOT_TOKEN && env.WS_NOTIFY_TELEGRAM_CHAT_ID))) {
+  if (enabled(env.WS_NOTIFY_TELEGRAM_ENABLED)) {
     if (!env.WS_NOTIFY_TELEGRAM_BOT_TOKEN || !env.WS_NOTIFY_TELEGRAM_CHAT_ID) tasks.push(['telegram', async () => { throw new Error('missing configuration') }])
     else tasks.push(['telegram', async () => {
       const response = await fetchImpl(`https://api.telegram.org/bot${env.WS_NOTIFY_TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -73,7 +73,7 @@ export async function dispatchNotifications(event, env = process.env, options = 
     }])
   }
 
-  if (enabled(env.WS_NOTIFY_WEBHOOK_ENABLED, Boolean(env.WS_NOTIFY_WEBHOOK_URL))) {
+  if (enabled(env.WS_NOTIFY_WEBHOOK_ENABLED)) {
     if (!env.WS_NOTIFY_WEBHOOK_URL) tasks.push(['webhook', async () => { throw new Error('missing configuration') }])
     else tasks.push(['webhook', async () => {
       const url = safeWebhookUrl(env.WS_NOTIFY_WEBHOOK_URL)
