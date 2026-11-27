@@ -7,13 +7,13 @@ Monitor externo de disponibilidade e integridade funcional dos relays da Central
 | Serviço | Cliente/protocolo | Verificação funcional |
 |---|---|---|
 | Mcraft P2P (Trystero) | `@trystero-p2p/ws-relay` + `werift` | Dois processos Trystero entram em uma sala efêmera e trocam uma ação com nonce e ACK por WebRTC. |
-| EaglerCraft Relay | EaglerSPRelay v1 | Envia o handshake de ping do protocolo (tipo de conexão 0x03) e valida a resposta PKT 0x69. |
+| EaglerCraft Relay | EaglerSPRelay v1 | Envia o `RelayPacket00Handshake` completo (tipo 0x03, versão 1 e `connectionCode` nulo codificado como ASCII8 de tamanho zero) e valida o PKT 0x69 com campos ASCII8. |
 | Mcraft P2P (PeerJS legado) | `peerjs` + `werift` | Dois peers efêmeros registram-se, abrem DataChannel raw e trocam payload binário/ACK. |
 | EaglerCraft Wisp | `@mercuryworkshop/wisp-js` 0.5.3 | Negocia Wisp v2 pelo cliente oficial e valida a versão negociada. |
 
 Cada serviço é independente. Uma falha, desativação ou ausência de configuração de um serviço não interrompe os demais. Os resultados distinguem serviços desativados, fora do horário de verificação, mal configurados e com falha.
 
-Trystero e PeerJS usam dois participantes de teste efêmeros. A comunicação WebRTC é feita diretamente entre os processos do runner; não é usado TURN nem tráfego de jogo. A verificação Wisp confirma a negociação v2; um teste de stream TCP não é executado porque não há destino de echo de teste configurado. O EaglerSPRelay recebe somente um ping de protocolo, sem criar Shared World ou código de sessão.
+Trystero e PeerJS usam dois participantes de teste efêmeros. A comunicação WebRTC é feita diretamente entre os processos do runner; não é usado TURN nem tráfego de jogo. A verificação Wisp confirma a negociação v2; um teste de stream TCP não é executado porque não há destino de echo de teste configurado. O EaglerSPRelay recebe somente um ping de protocolo v1; o campo `connectionCode` é nulo (ASCII8 de tamanho zero), sem criar Shared World ou código de sessão. O handshake e o pong usam strings ASCII8 de comprimento em um byte, conforme `RelayPacket00Handshake` e `RelayPacket69Pong`.
 
 ## Configuração do GitHub
 
