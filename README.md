@@ -223,7 +223,7 @@ Os arrays são opcionais, logins inválidos são ignorados e cada issue aceita n
 
 ### Diagnóstico das falhas
 
-As verificações registram categorias estáveis, sem imprimir mensagens brutas de exceções ou dados de conexão: `connection_timeout`, `negotiation_timeout`, `protocol_version_mismatch`, `message_parse_error`, `connection_closed`, `websocket_error` ou `probe_failed`. A categoria da última tentativa é adicionada à amostra histórica e ao corpo do incidente.
+As verificações registram categorias estáveis, sem imprimir mensagens brutas de exceções ou dados de conexão: `connection_timeout`, `connection_refused`, `dns_resolution_failed`, `negotiation_timeout`, `protocol_version_mismatch`, `message_parse_error`, `connection_closed`, `websocket_error` ou `probe_failed`. A categoria da última tentativa é adicionada à amostra histórica e ao corpo do incidente.
 
 ## Status Page como PWA
 
