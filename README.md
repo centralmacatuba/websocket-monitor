@@ -70,7 +70,7 @@ O monitor precisa da permissão GitHub Actions **Issues: Read and write** para a
 
 A página estática fica em `status-page/` e é publicada pelo workflow `.github/workflows/status-page.yml` no GitHub Pages. Não há branch `gh-pages`, framework pesado, servidor Render ou banco de dados externo.
 
-**Endereço esperado:** https://websocket.centralmacatuba.qzz.io/
+**Endereço esperado:** https://websocket.centralmacatuba.qzz.io/\n\nO arquivo `status-page/CNAME` já declara `websocket.centralmacatuba.qzz.io`. Depois da integração, configure no DNS o CNAME `websocket` apontando para `centralmacatuba.github.io` e confirme o domínio em **Settings → Pages**; habilite **Enforce HTTPS** quando o certificado estiver disponível.
 
 A publicação é acionada quando o workflow de monitoramento termina (inclusive quando o resultado de um probe faz o workflow terminar com falha), quando os arquivos da página mudam na branch `principal`, ou manualmente. O builder lê as issues/comentários públicos do próprio repositório, gera JSON estático e badges SVG e publica tudo pelo fluxo oficial de artefatos do GitHub Pages.
 
