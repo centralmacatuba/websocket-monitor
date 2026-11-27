@@ -367,3 +367,52 @@ test('Wisp disconnect before negotiation is a failure and closes the client', as
   await assert.rejects(checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: DisconnectingConnection }), /closed before v2 negotiation/)
   assert.equal(closeCount, 1)
 })
+
+
+test('PeerJS production wrapper returns the isolated worker result and terminates its process', async () => {
+  const child = new EventEmitter()
+  child.exitCode = null
+  child.signalCode = null
+  child.connected = true
+  child.send = (message) => {
+    assert.equal(message.type, 'probe')
+    assert.equal(message.url, 'https://peer.example.test/peerjs')
+    queueMicrotask(() => child.emit('message', { type: 'result', result: { protocol: true, elapsedMs: 10 } }))
+  }
+  child.kill = (signal) => { child.signalCode = signal }
+  const result = await checkPeerJs('https://peer.example.test/peerjs', { timeoutMs: 100, forkImpl: () => child })
+  assert.deepEqual(result, { protocol: true, elapsedMs: 10 })
+  assert.equal(child.signalCode, 'SIGKILL')
+})
+
+test('Trystero production wrapper isolates both relay participants in child processes', async () => {
+  const children = []
+  const forkImpl = (_path, _args, options) => {
+    const child = new EventEmitter()
+    child.exitCode = null
+    child.signalCode = null
+    child.connected = true
+    child.send = (message) => {
+      if (message?.type === 'stop') {
+        child.connected = false
+        child.exitCode = 0
+        queueMicrotask(() => child.emit('exit', 0, null))
+      }
+    }
+    child.kill = (signal) => {
+      child.signalCode = signal
+      queueMicrotask(() => child.emit('exit', null, signal))
+    }
+    children.push({ child, role: options.env.CM_TRYSTERO_ROLE })
+    queueMicrotask(() => child.emit('message', { type: 'ready' }))
+    if (options.env.CM_TRYSTERO_ROLE === 'initiator') {
+      queueMicrotask(() => child.emit('message', { type: 'done', elapsedMs: 12 }))
+    }
+    return child
+  }
+  const result = await checkTrystero('wss://relay.example.test', { timeoutMs: 100, forkImpl })
+  assert.equal(result.peerExchange, true)
+  assert.equal(children.length, 2)
+  assert.deepEqual(children.map((item) => item.role), ['responder', 'initiator'])
+  assert.ok(children.every((item) => item.child.exitCode === 0))
+})
