@@ -58,7 +58,7 @@ function incidentAssignees(env, service) {
 
 async function countConsecutiveFailures(service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository) {
   if (!metricsIssue) return 0
-  const since = new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
+  const since = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
   const comments = await githubRequestAllPages(
     \`\${repository}/issues/\${metricsIssue.number}/comments?since=\${encodeURIComponent(since)}\`,
     token, fetchImpl, apiUrl,
