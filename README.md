@@ -163,7 +163,7 @@ pnpm test
 node --env-file=.env src/monitor.js
 ```
 
-O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Ao usar um token pessoal localmente, defina também `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub que assina os comentários; em Actions, o padrão confiável é `github-actions[bot]`.
+O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Nos workflows, `GITHUB_TOKEN` recebe o valor de `secrets.CM_GITHUB_TOKEN`. Ao usar um token pessoal localmente, defina também `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub que assina os comentários; em Actions, o padrão confiável é `github-actions[bot]`.
 
 ## Segurança
 
@@ -172,7 +172,7 @@ O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em um
 - As salas e peers Trystero/PeerJS são encerrados após o teste. O appId do Trystero é exclusivo do monitor para impedir que o teste encontre salas reais.
 - EaglerSPRelay recebe somente um pacote ping oficial e não cria mundos.
 - Wisp negocia versão sem abrir streams para destinos externos.
-- O workflow mantém permissões mínimas: `contents: read` e `issues: write`; checkout usa `persist-credentials: false`.
+- O workflow de monitoramento e a geração da Status Page usam a secret `CM_GITHUB_TOKEN` para chamadas à API; as permissões declaradas no workflow continuam limitadas ao necessário. O checkout desses workflows usa `persist-credentials: false`. A sincronização manual do lockfile usa o mesmo token no checkout para autenticar o `git push`.
 - O teste de transporte WebSocket genérico continua disponível em `src/check-websocket.js`, mas os quatro probes usam clientes ou mensagens de protocolo próprios.
 
 ## Licença
