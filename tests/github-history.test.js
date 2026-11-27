@@ -138,7 +138,7 @@ test('does not suppress incidents for a maintenance window marked completed', as
 
 test('ignores history comments authored by users other than the trusted monitor identity', async () => {
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
-  const body = `${marker}\\n\\n\\`\\`\\`json\\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\\n\\`\\`\\`
+  const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'open' }] },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body, user: { login: 'untrusted-user' } }] },
@@ -209,7 +209,7 @@ test('metrics history lookup paginates issues and comments before creating a ser
   const issuePage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
   const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE, state: 'open' }
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
-  const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
+  const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const commentPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `unrelated ${index}` }))
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc') && /[?&]page=1$/.test(url), status: 200, body: issuePage },
