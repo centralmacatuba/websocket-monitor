@@ -9,7 +9,13 @@ function mockFetch(routes) {
     calls.push({ url, options })
     const route = routes.find((item) => item.match(url, options))
     if (!route) throw new Error(`Unexpected request: ${url}`)
-    return { ok: route.status < 400, status: route.status, json: async () => route.body }
+    return {
+      ok: route.status < 400,
+      status: route.status,
+      json: async () => Array.isArray(route.body) && url.includes('/comments')
+        ? route.body.map((comment) => ({ user: { login: 'github-actions[bot]' }, ...comment }))
+        : route.body,
+    }
   }
   return { fetchImpl, calls }
 }
@@ -39,7 +45,7 @@ test('closes an active incident after recovery', async () => {
 
 test('records first real protocol check in a new daily service series', async () => {
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 15 } },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [] },
     { match: (url) => url.endsWith('/issues/15/comments') && url.includes('/repos/owner/repo'), status: 201, body: { id: 100 } },
@@ -58,7 +64,7 @@ test('appends a check to an existing series comment without duplicating timestam
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
   const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 15, title: '[WebSocket Monitor][Metrics] Daily health history' }] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: '[WebSocket Monitor][Metrics] Daily health history', state: 'open' }] },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body }] },
     { match: (url) => url.endsWith('/issues/comments/100'), status: 200, body: {} },
   ])
@@ -151,13 +157,13 @@ test('incident synchronization paginates before deciding an issue is absent', as
 
 test('metrics history lookup paginates issues and comments before creating a series', async () => {
   const issuePage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
-  const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE }
+  const metricsIssue = { number: 700, title: METRICS_ISSUE_TITLE, state: 'open' }
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
   const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
   const commentPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `unrelated ${index}` }))
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open') && /[?&]page=1$/.test(url), status: 200, body: issuePage },
-    { match: (url) => url.includes('/issues?state=open') && /[?&]page=2$/.test(url), status: 200, body: [metricsIssue] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc') && /[?&]page=1$/.test(url), status: 200, body: issuePage },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc') && /[?&]page=2$/.test(url), status: 200, body: [metricsIssue] },
     { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=1$/.test(url), status: 200, body: commentPage },
     { match: (url) => url.includes('/issues/700/comments?') && /[?&]page=2$/.test(url), status: 200, body: [{ id: 900, body }] },
     { match: (url) => url.endsWith('/issues/comments/900'), status: 200, body: {} },
