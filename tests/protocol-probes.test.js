@@ -92,7 +92,7 @@ test('does not let the Wisp client silently reconnect using v1 after a v2 error'
   class FallbackConnection {
     constructor() {
       this.wisp_version = 2
-      this.ws = {}
+      this.ws = { onerror: () => { fallbackAttempts += 1 } }
       queueMicrotask(() => this.ws.onerror?.())
     }
     cleanup() {}
