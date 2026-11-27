@@ -18,12 +18,15 @@ function applyFreshness(status) {
 function renderOverall(status, services) {
   const order = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
   const overall = order.find((candidate) => services.some((service) => service.status === candidate)) ?? status
+  const pendingConfirmation = services.some((service) => service.statusReason === 'pending-confirmation')
   const copy = {
     operational: ['Todos os sistemas operacionais', 'Os serviços monitorados estão respondendo normalmente.'],
     degraded: ['Desempenho degradado', 'Um ou mais serviços estão respondendo, mas com latência elevada.'],
     down: ['Interrupção em andamento', 'Um ou mais serviços não passaram na verificação de protocolo.'],
     maintenance: ['Manutenção em andamento', 'Há serviços em uma janela de manutenção programada.'],
-    unknown: ['Status parcialmente desconhecido', 'Ainda não há amostras recentes suficientes para todos os serviços.'],
+    unknown: pendingConfirmation
+      ? ['Falha isolada em confirmação', 'Uma verificação falhou. Aguardando a próxima amostra antes de confirmar uma interrupção.']
+      : ['Status parcialmente desconhecido', 'Ainda não há amostras recentes suficientes para todos os serviços.'],
   }[overall]
   $('#overall').innerHTML = `<span class="status-dot ${overall}"></span><div><strong>${copy[0]}</strong><p>${copy[1]}</p></div>`
 }
@@ -34,7 +37,7 @@ function renderServices(services) {
     const metrics = service.uptime ?? {}
     const values = ['24h', '7d', '30d'].map((key) => `<div class="metric"><strong>${percent(metrics[key]?.uptime)}</strong><span>Uptime ${key} · ${metrics[key]?.checks ?? 0} checks</span></div>`).join('')
     const latency = service.latencyMs == null ? '—' : `${number(service.latencyMs)} ms`
-    return `<article class="service-card"><div class="service-top"><span class="service-name"> ${escapeHtml(service.name)}</span><span class="status-pill ${service.status}">${statusLabels[service.status] ?? statusLabels.unknown}</span></div><div class="service-metrics">${values}</div><div class="service-foot"><span>Latência atual: ${latency}</span><span>${service.uptime?.['24h']?.checks ?? 0} verificações / 24h</span></div><div class="service-foot"><span>Última verificação</span><span>${dateTime(service.lastCheckedAt)}</span></div></article>`
+    return `<article class="service-card"><div class="service-top"><span class="service-name"> ${escapeHtml(service.name)}</span><span class="status-pill ${service.status}">${service.statusReason === 'pending-confirmation' ? 'Falha pendente de confirmação' : (statusLabels[service.status] ?? statusLabels.unknown)}</span></div><div class="service-metrics">${values}</div><div class="service-foot"><span>Latência atual: ${latency}</span><span>${service.uptime?.['24h']?.checks ?? 0} verificações / 24h</span></div><div class="service-foot"><span>Última verificação</span><span>${dateTime(service.lastCheckedAt)}</span></div></article>`
   }).join('')
 }
 
