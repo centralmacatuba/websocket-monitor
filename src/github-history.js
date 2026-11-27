@@ -109,7 +109,7 @@ export async function syncIncidents(results, env = process.env, options = {}) {
     const title = incidentTitle(result)
     const active = issues.find((issue) => issue.title === title)
     if (result.ok === false && !active) {
-      const failures = await countConsecutiveFailures(result.service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository)
+      const failures = confirmationFailures === 1 ? 1 : await countConsecutiveFailures(result.service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository)
       if (failures < confirmationFailures) continue
       const created = await githubRequest(`${repository}/issues`, token, {
         method: 'POST',
