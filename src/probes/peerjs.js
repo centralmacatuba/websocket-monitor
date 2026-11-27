@@ -89,6 +89,9 @@ export async function checkPeerJs(url, { timeoutMs = 15_000, PeerClass, installP
         })
       })
     })
+    // Mark early ICE/negotiation failures as handled while outgoing.open is pending.
+    // Awaiting the original promise later still propagates the rejection.
+    received.catch(() => {})
 
     outgoing = sender.connect(receiverId, { serialization: 'raw', reliable: true })
     await withTimeout(new Promise((resolveOpen, rejectOpen) => {
