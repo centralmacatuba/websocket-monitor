@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { isIntervalDue, parseBoolean, positiveInteger, runMonitor } from '../src/monitor.js'
+import { classifyProbeError, isIntervalDue, parseBoolean, positiveInteger, runMonitor } from '../src/monitor.js'
 
 function createLog() {
   const entries = { info: [], warn: [], error: [] }
@@ -152,4 +152,37 @@ test('publishes incident history after protocol checks when GitHub credentials a
   assert.equal(published.results.filter((result) => result.ok).length, 1)
   assert.equal(published.results.find((result) => result.service === 'eaglercraft-wisp').elapsedMs, 23)
   assert.equal(published.env.GITHUB_REPOSITORY, 'owner/repo')
+})
+
+
+test('classifies protocol failures without exposing raw exception messages', () => {
+  assert.equal(classifyProbeError(new Error('Wisp v2 negotiation timed out')), 'negotiation_timeout')
+  assert.equal(classifyProbeError(new Error('Wisp server did not negotiate protocol version 2')), 'protocol_version_mismatch')
+  assert.equal(classifyProbeError(new Error('malformed Wisp frame')), 'message_parse_error')
+  assert.equal(classifyProbeError(new Error('Wisp connection closed before negotiation completed')), 'connection_closed')
+  assert.equal(classifyProbeError(new Error('WebSocket connection refused')), 'connection_timeout')
+  assert.equal(classifyProbeError(new Error('unclassified failure')), 'probe_failed')
+})
+
+test('persists a stable failure category for a failed protocol probe', async () => {
+  const { log } = createLog()
+  let published
+  const code = await runMonitor({
+    ...urls,
+    MCRAFT_P2P_MONITOR_ENABLED: 'false',
+    EAGLERCRAFT_RELAY_MONITOR_ENABLED: 'false',
+    MCRAFT_P2P_PEERJS_MONITOR_ENABLED: 'false',
+    GITHUB_TOKEN: 'test-token',
+    GITHUB_REPOSITORY: 'owner/repo',
+  }, {
+    log,
+    force: true,
+    maxAttempts: 1,
+    probes: {
+      'eaglercraft-wisp': async () => { throw new Error('Wisp v2 negotiation timed out') },
+    },
+    publishHistory: async (results) => { published = results },
+  })
+  assert.equal(code, 1)
+  assert.equal(published.find((item) => item.service === 'eaglercraft-wisp').failureCode, 'negotiation_timeout')
 })
