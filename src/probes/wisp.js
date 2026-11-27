@@ -53,6 +53,13 @@ export function checkWisp(url, { timeoutMs = 15_000, ClientConnection = wisp.Cli
         try { connection.cleanup?.() } catch {}
         connection.onerror?.()
       }
+      const originalOnMessage = connection.ws.onmessage
+      if (typeof originalOnMessage === 'function') {
+        connection.ws.onmessage = function (event) {
+          try { return originalOnMessage.call(this, event) }
+          catch (error) { finish(error) }
+        }
+      }
     }
 
     const timer = setTimeout(() => finish(new Error('Wisp v2 negotiation timed out')), timeoutMs)
