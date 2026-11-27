@@ -36,6 +36,18 @@ export function isIntervalDue(intervalMinutes, now = Date.now()) {
   return minute % effectiveInterval < 5
 }
 
+export function classifyProbeError(error) {
+  const code = String(error?.code ?? '').toLowerCase()
+  const message = String(error?.message ?? '').toLowerCase()
+  if (code.includes('timeout') || /negotiation timed out|protocol timed out/.test(message)) return 'negotiation_timeout'
+  if (/timed out|timeout|etimedout|econnrefused|enotfound|ehostunreach/.test(`${code} ${message}`)) return 'connection_timeout'
+  if (/version 2|protocol version|downgrade/.test(message)) return 'protocol_version_mismatch'
+  if (/malformed|truncated|parse|invalid frame|payload mismatch/.test(message)) return 'message_parse_error'
+  if (/closed before|connection closed|socket closed/.test(message)) return 'connection_closed'
+  if (/websocket|socket|handshake|connect|network/.test(message)) return 'websocket_error'
+  return 'probe_failed'
+}
+
 function safeLog(log, level, message) {
   log[level]?.(message)
 }
@@ -51,7 +63,7 @@ async function runService(service, url, options) {
   const effectiveMaxAttempts = service.maxAttempts ?? maxAttempts
   const effectiveRetryDelayMs = service.retryDelayMs ?? retryDelayMs
 
-  for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt += 1) {
+  let lastFailureCode = 'probe_failed'\n  for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt += 1) {
     const attemptStartedAt = Date.now()
     try {
       const result = await probe(url, { timeoutMs })
@@ -65,7 +77,7 @@ async function runService(service, url, options) {
   }
 
   safeLog(log, 'error', `[FAIL] ${service.name}: indisponível após ${effectiveMaxAttempts} tentativas`)
-  return { ok: false, service: service.id, name: service.name, attempts: effectiveMaxAttempts, elapsedMs: null }
+  return { ok: false, service: service.id, name: service.name, attempts: effectiveMaxAttempts, elapsedMs: null, failureCode: lastFailureCode }
 }
 
 /**
