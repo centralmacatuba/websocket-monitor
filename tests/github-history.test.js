@@ -140,7 +140,7 @@ test('ignores history comments authored by users other than the trusted monitor 
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
   const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'open' }] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: METRICS_ISSUE_TITLE, state: 'open', user: { login: 'github-actions[bot]' } }] },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body, user: { login: 'untrusted-user' } }] },
     { match: (url, options) => url.endsWith('/issues/15/comments') && options.method === 'POST', status: 201, body: { id: 101 } },
   ])
