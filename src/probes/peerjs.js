@@ -132,11 +132,12 @@ export async function checkPeerJs(url, options = {}) {
   }
 
   const { fork } = await import('node:child_process')
+  const forkImpl = options.forkImpl ?? fork
   const { fileURLToPath } = await import('node:url')
   const { dirname, resolve } = await import('node:path')
   const workerPath = resolve(dirname(fileURLToPath(import.meta.url)), 'peerjs-worker.js')
   const timeoutMs = options.timeoutMs ?? 15_000
-  const child = fork(workerPath, [], {
+  const child = forkImpl(workerPath, [], {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
