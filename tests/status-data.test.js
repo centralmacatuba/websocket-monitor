@@ -57,6 +57,7 @@ test('summary exposes real uptime windows and latency percentiles', () => {
   assert.equal(summary.latency24h.samples, 20)
   assert.equal(summary.latency24h.averageMs, 195)
   assert.equal(summary.status, 'operational')
+  assert.equal(summary.staleAfterMs, 15 * 60_000)
 })
 
 test('generates a safe SVG badge with escaped text', () => {
