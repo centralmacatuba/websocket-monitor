@@ -406,7 +406,7 @@ test('Trystero production wrapper isolates both relay participants in child proc
     children.push({ child, role: options.env.CM_TRYSTERO_ROLE })
     queueMicrotask(() => child.emit('message', { type: 'ready' }))
     if (options.env.CM_TRYSTERO_ROLE === 'initiator') {
-      queueMicrotask(() => child.emit('message', { type: 'done', elapsedMs: 12 }))
+      setTimeout(() => child.emit('message', { type: 'done', elapsedMs: 12 }), 0)
     }
     return child
   }
