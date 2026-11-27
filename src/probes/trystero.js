@@ -53,11 +53,16 @@ async function checkTrysteroInProcess(url, { timeoutMs = 15_000, joinRoomImpl = 
   let room
 
   try {
-    const childReady = withTimeout(new Promise((resolveReady, rejectReady) => {
+    let rejectChildReady
+    const childReady = new Promise((resolveReady, rejectReady) => {
+      rejectChildReady = rejectReady
       child.once('message', (message) => message?.type === 'ready' ? resolveReady() : rejectReady(new Error('Trystero worker failed to initialize')))
       child.once('error', rejectReady)
       child.once('exit', (code) => { if (code !== 0) rejectReady(new Error('Trystero worker exited during startup')) })
-    }), timeoutMs, 'Trystero peer startup timed out')
+    })
+    // Attach a rejection observer immediately because room creation can fail before startup is awaited.
+    childReady.catch(() => {})
+    const childReadyTimer = setTimeout(() => rejectChildReady(new Error('Trystero peer startup timed out')), timeoutMs)
 
     room = joinRoomImpl({
       appId: APP_ID,
@@ -104,6 +109,7 @@ async function checkTrysteroInProcess(url, { timeoutMs = 15_000, joinRoomImpl = 
     }
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: Date.now() - startedAt }
   } finally {
+    clearTimeout(childReadyTimer)
     if (room) { try { await room.leave() } catch {} }
     await stopChild(child)
   }
