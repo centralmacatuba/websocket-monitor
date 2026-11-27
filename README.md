@@ -60,7 +60,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 - Quando um probe falha após todas as tentativas, o monitor registra a amostra. Por padrão, exige duas verificações consecutivas com falha antes de abrir uma issue `[WebSocket Monitor][DOWN]` e disparar notificações; o limite é configurável. A issue funciona como alerta e registro do início do incidente.
 - Enquanto o serviço continuar indisponível, a mesma issue permanece aberta; verificações subsequentes não criam alertas duplicados.
 - Quando o probe volta a funcionar, o monitor comenta a recuperação e fecha a issue. O histórico de issues preserva início, recuperação e duração do incidente.
-- Cada verificação de protocolo efetivamente executada é registrada como uma amostra compacta em um comentário diário por serviço na issue de métricas. Cada amostra contém timestamp, resultado, duração total do probe e número de tentativas.
+- Cada verificação de protocolo efetivamente executada é registrada como uma amostra compacta em um comentário diário por serviço na issue de métricas. Cada amostra contém timestamp, resultado, duração total do probe, número de tentativas e categoria estável de falha (quando houver).
 - As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura.
 - Janelas de manutenção suprimem a abertura de novos incidentes para os serviços abrangidos. Incidentes já abertos continuam sendo atualizados e fechados normalmente quando houver recuperação.
 
