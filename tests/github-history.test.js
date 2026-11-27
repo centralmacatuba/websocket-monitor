@@ -62,7 +62,7 @@ test('records first real protocol check in a new daily service series', async ()
 
 test('appends a check to an existing series comment without duplicating timestamps', async () => {
   const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25 -->'
-  const body = `${marker}\n\n\`\`\`json\n{"version":1,"service":"eaglercraft-wisp","date":"2026-11-25","samples":[[1795608000000,1,18,1]]}\n\`\`\``
+  const body = [marker, '', '```json', JSON.stringify({ version: 1, service: 'eaglercraft-wisp', date: '2026-11-25', samples: [[1795608000000, 1, 18, 1]] }), '```'].join('\n')
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [{ number: 15, title: '[WebSocket Monitor][Metrics] Daily health history', state: 'open' }] },
     { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 100, body }] },
