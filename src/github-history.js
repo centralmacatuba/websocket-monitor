@@ -89,7 +89,10 @@ export async function syncIncidents(results, env = process.env, options = {}) {
   const openIssues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
   const issues = openIssues.filter((issue) => !issue.pull_request)
   const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
-  const confirmationFailures = Math.min(10, Math.max(1, Number.parseInt(env.WS_INCIDENT_CONFIRMATION_FAILURES || '2', 10) || 2))
+  const configuredConfirmations = Number.parseInt(env.WS_INCIDENT_CONFIRMATION_FAILURES || '2', 10)
+  const confirmationFailures = Number.isSafeInteger(configuredConfirmations) && configuredConfirmations >= 1
+    ? Math.min(10, configuredConfirmations)
+    : 2
   const allIssues = confirmationFailures > 1
     ? await githubRequestAllPages(`${repository}/issues?state=all&sort=updated&direction=desc`, token, fetchImpl, apiUrl)
     : []
