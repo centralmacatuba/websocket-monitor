@@ -65,7 +65,8 @@ async function runService(service, url, options) {
   const effectiveMaxAttempts = service.maxAttempts ?? maxAttempts
   const effectiveRetryDelayMs = service.retryDelayMs ?? retryDelayMs
 
-  let lastFailureCode = 'probe_failed'\n  for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt += 1) {
+  let lastFailureCode = 'probe_failed'
+  for (let attempt = 1; attempt <= effectiveMaxAttempts; attempt += 1) {
     const attemptStartedAt = Date.now()
     try {
       const result = await probe(url, { timeoutMs })
