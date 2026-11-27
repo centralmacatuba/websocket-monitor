@@ -41,8 +41,8 @@ async function main() {
       if (settled) return
       settled = true
       await cleanup()
-      if (process.connected) process.send(error ? { type: 'error' } : { type: 'done', elapsedMs: Date.now() - startedAt })
-      process.exit(error ? 2 : 0)
+      if (process.connected) process.send(error ? { type: 'error' } : { type: 'done', elapsedMs: Date.now() - startedAt }, () => process.exit(error ? 2 : 0))
+      else process.exit(error ? 2 : 0)
     }
     action.onMessage = (message) => {
       if (message?.kind === 'ack' && message.nonce === nonce) void finish()
@@ -55,8 +55,8 @@ async function main() {
       if (message?.kind !== 'probe' || typeof message.nonce !== 'string') return
       await action.send({ kind: 'ack', nonce: message.nonce })
       await cleanup()
-      if (process.connected) process.send({ type: 'done' })
-      process.exit(0)
+      if (process.connected) process.send({ type: 'done' }, () => process.exit(0))
+      else process.exit(0)
     }
   }
   process.on('message', async (message) => {
