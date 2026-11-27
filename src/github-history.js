@@ -234,8 +234,12 @@ export async function publishGitHubHistory(results, env = process.env, options =
       maintenances = JSON.parse(file).maintenances ?? []
     } catch { maintenances = [] }
   }
-  const historyResult = await recordCheckHistory(results, env, options)
-  const incidentResult = await syncIncidents(results, env, { ...options, maintenances })
-  const notificationResults = await Promise.all((incidentResult.events ?? []).map((event) => dispatchNotifications(event, env, options)))
-  return { incidents: incidentResult, history: historyResult, notifications: notificationResults }
+  try {
+    const historyResult = await recordCheckHistory(results, env, options)
+    const incidentResult = await syncIncidents(results, env, { ...options, maintenances })
+    const notificationResults = await Promise.all((incidentResult.events ?? []).map((event) => dispatchNotifications(event, env, options)))
+    return { incidents: incidentResult, history: historyResult, notifications: notificationResults }
+  } catch {
+    throw new Error('GitHub incident/history synchronization was incomplete')
+  }
 }
