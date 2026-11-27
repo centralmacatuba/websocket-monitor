@@ -225,13 +225,14 @@ function makeTrysteroHarness({ peerJoins = true, validAck = true, joinFails = fa
   queueMicrotask(() => child.emit('message', { type: 'ready' }))
   let left = 0
   let actionMessage
+  const action = {
+    set onMessage(callback) { actionMessage = callback },
+    get onMessage() { return actionMessage },
+    send: async (message) => actionMessage?.({ kind: 'ack', nonce: validAck ? message.nonce : 'wrong-nonce' }),
+  }
   const room = {
-    getSelf: async () => ['self'],
-    makeAction: () => ({
-      onMessage: (callback) => { actionMessage = callback },
-      send: async (message) => actionMessage?.({ kind: 'ack', nonce: validAck ? message.nonce : 'wrong-nonce' }),
-    }),
-    onUserJoin: (callback) => { if (peerJoins) queueMicrotask(() => callback('remote-peer')) },
+    makeAction: () => action,
+    set onPeerJoin(callback) { if (callback && peerJoins) queueMicrotask(() => callback('remote-peer')) },
     leave: async () => { left += 1 },
   }
   return {
