@@ -22,13 +22,12 @@ function repoPath(repository) {
 
 async function githubRequestAllPages(path, token, fetchImpl, apiUrl) {
   const items = []
-  for (let page = 1; page <= 20; page += 1) {
+  for (let page = 1; ; page += 1) {
     const separator = path.includes('?') ? '&' : '?'
     const batch = await githubRequest(`${path}${separator}per_page=100&page=${page}`, token, {}, fetchImpl, apiUrl)
     items.push(...batch)
     if (batch.length < 100) return items
   }
-  throw new Error('GitHub API pagination exceeded the safety limit')
 }
 
 function incidentTitle(result) {
@@ -111,7 +110,7 @@ export async function recordCheckHistory(results, env = process.env, options = {
   const included = results.filter((result) => result.service && typeof result.ok === 'boolean' && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
   if (included.length === 0) return { skipped: true, reason: 'no-checks' }
 
-  const issues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
+  const issues = await githubRequestAllPages(`${repository}/issues?state=all&sort=updated&direction=desc`, token, fetchImpl, apiUrl)
   let metricsIssue = findMetricsIssue(issues)
   if (!metricsIssue) {
     metricsIssue = await githubRequest(`${repository}/issues`, token, {
@@ -123,13 +122,28 @@ export async function recordCheckHistory(results, env = process.env, options = {
         'Incident start/recovery timestamps are stored in the individual incident issues.',
       ].join('\n') }),
     }, fetchImpl, apiUrl)
+  } else if (metricsIssue.state === 'closed') {
+    await githubRequest(`${repository}/issues/${metricsIssue.number}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ state: 'open' }),
+    }, fetchImpl, apiUrl)
   }
 
-  const comments = await githubRequestAllPages(`${repository}/issues/${metricsIssue.number}/comments?sort=created&direction=desc`, token, fetchImpl, apiUrl)
+  const dayStart = new Date(Date.UTC(
+    new Date(now).getUTCFullYear(),
+    new Date(now).getUTCMonth(),
+    new Date(now).getUTCDate(),
+  )).toISOString()
+  const comments = await githubRequestAllPages(
+    `${repository}/issues/${metricsIssue.number}/comments?since=${encodeURIComponent(dayStart)}`,
+    token, fetchImpl, apiUrl,
+  )
+  const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
+  const trustedComments = comments.filter((comment) => comment.user?.login === trustedAuthor)
   const writes = []
   for (const result of included) {
     const marker = SERIES_MARKER(result.service, date)
-    const existing = comments.find((comment) => comment.body?.includes(marker))
+    const existing = trustedComments.find((comment) => comment.body?.includes(marker))
     const current = existing ? parseSeriesComment(existing.body) : null
     const samples = current?.samples ?? []
     if (!samples.some((item) => item[0] === now)) {
@@ -142,7 +156,7 @@ export async function recordCheckHistory(results, env = process.env, options = {
       writes.push({ service: result.service, action: 'updated' })
     } else {
       const created = await githubRequest(`${repository}/issues/${metricsIssue.number}/comments`, token, { method: 'POST', body: JSON.stringify({ body }) }, fetchImpl, apiUrl)
-      comments.unshift(created)
+      trustedComments.unshift(created)
       writes.push({ service: result.service, action: 'created' })
     }
   }
