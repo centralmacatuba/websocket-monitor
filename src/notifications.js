@@ -50,7 +50,7 @@ export async function dispatchNotifications(event, env = process.env, options = 
   if (enabled(env.WS_NOTIFY_DISCORD_ENABLED, Boolean(env.WS_NOTIFY_DISCORD_WEBHOOK_URL))) {
     if (!env.WS_NOTIFY_DISCORD_WEBHOOK_URL) tasks.push(['discord', async () => { throw new Error('missing configuration') }])
     else tasks.push(['discord', async () => {
-      const response = await fetchImpl(env.WS_NOTIFY_DISCORD_WEBHOOK_URL, {
+      const response = await fetchImpl(safeWebhookUrl(env.WS_NOTIFY_DISCORD_WEBHOOK_URL), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, allowed_mentions: { parse: [] } }),
