@@ -164,8 +164,13 @@ export async function runMonitor(env = process.env, options = {}) {
 
   if (env.GITHUB_TOKEN && env.GITHUB_REPOSITORY) {
     try {
-      await (options.publishHistory ?? publishGitHubHistory)(results, env, { now, fetchImpl: options.fetchImpl })
+      const published = await (options.publishHistory ?? publishGitHubHistory)(results, env, { now, fetchImpl: options.fetchImpl })
       safeLog(log, 'info', '[HISTORY] Incidentes e amostras de cada verificação sincronizados com GitHub Issues.')
+      for (const batch of published.notifications ?? []) {
+        for (const delivery of batch.results ?? []) {
+          safeLog(log, delivery.ok ? 'info' : 'warn', `[NOTIFY] ${delivery.destination}: ${delivery.ok ? 'entregue' : 'falha na entrega'}.`)
+        }
+      }
     } catch {
       // Do not hide the actual relay result or leak API response bodies/secrets.
       safeLog(log, 'error', '[HISTORY] Não foi possível atualizar o histórico/notificações do GitHub.')
