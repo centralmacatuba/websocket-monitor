@@ -71,5 +71,5 @@ jobs:
           WS_NOTIFY_WEBHOOK_ENABLED: ${{ vars.WS_NOTIFY_WEBHOOK_ENABLED }}
           WS_NOTIFY_WEBHOOK_URL: ${{ secrets.WS_NOTIFY_WEBHOOK_URL }}
           WS_NOTIFY_WEBHOOK_SECRET: ${{ secrets.WS_NOTIFY_WEBHOOK_SECRET }}
-          WS_NOTIFY_TIMEOUT_MS: "8000"
+          WS_NOTIFY_TIMEOUT_MS: ${{ vars.WS_NOTIFY_TIMEOUT_MS }}
         run: pnpm monitor
