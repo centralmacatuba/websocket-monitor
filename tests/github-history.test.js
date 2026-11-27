@@ -173,6 +173,7 @@ test('history pagination continues beyond the former twenty-page cap', async () 
     body: index < 20 ? Array.from({ length: 100 }, (_, item) => ({ number: index * 100 + item + 1, title: `unrelated ${index}-${item}` })) : [],
   }))
   pages.push(
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 2001 } },
     { match: (url) => url.includes('/issues/2001/comments?'), status: 200, body: [] },
     { match: (url, options) => url.endsWith('/issues/2001/comments') && options.method === 'POST', status: 201, body: { id: 9999 } },
   )
@@ -181,7 +182,7 @@ test('history pagination continues beyond the former twenty-page cap', async () 
     fetchImpl, now: Date.UTC(2026, 10, 25, 12),
   })
   assert.equal(result.writes[0].action, 'created')
-  assert.equal(calls.length, 24)
+  assert.equal(calls.length, 25)
 })
 
 test('writer and status-page lookup share the same canonical metrics issue title', () => {
