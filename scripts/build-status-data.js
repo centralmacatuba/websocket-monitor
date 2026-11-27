@@ -80,8 +80,16 @@ const maintenances = (maintenanceConfig.maintenances ?? []).map((item) => {
   return item
 })
 const globalInterval = effectiveIntervalMinutes(process.env.WS_MONITOR_INTERVAL_MINUTES ?? config.expectedIntervalMinutes ?? 5)
+const configuredConfirmations = Number.parseInt(process.env.WS_INCIDENT_CONFIRMATION_FAILURES ?? '2', 10)
+const incidentConfirmationFailures = Number.isSafeInteger(configuredConfirmations) && configuredConfirmations >= 1
+  ? Math.min(10, configuredConfirmations)
+  : 2
 const services = config.services.map((service) => buildServiceSummary(
-  { ...service, expectedIntervalMinutes: effectiveIntervalMinutes(process.env[service.intervalVariable], globalInterval) },
+  {
+    ...service,
+    expectedIntervalMinutes: effectiveIntervalMinutes(process.env[service.intervalVariable], globalInterval),
+    incidentConfirmationFailures,
+  },
   samplesByService[service.id],
   now,
   maintenances.filter((item) => item.service === service.id || item.service === 'all'),
