@@ -33,7 +33,8 @@ const repository = config.repository
 if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error('Invalid repository in status-page/config.json')
 const repoPath = `/repos/${repository}`
 const issues = await allPages(`${repoPath}/issues?state=all&sort=updated&direction=desc`)
-const metricsIssue = findMetricsIssue(issues)
+const trustedAuthor = process.env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
+const metricsIssue = findMetricsIssue(issues, trustedAuthor)
 const now = Date.now()
 const cutoff = now - 30 * 24 * 60 * 60 * 1000
 const samplesByService = Object.fromEntries(config.services.map((service) => [service.id, []]))
@@ -41,7 +42,6 @@ const samplesByService = Object.fromEntries(config.services.map((service) => [se
 if (metricsIssue) {
   const since = new Date(cutoff).toISOString()
   const comments = await allPages(`${repoPath}/issues/${metricsIssue.number}/comments?since=${encodeURIComponent(since)}`)
-  const trustedAuthor = process.env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
   for (const comment of comments) {
     if (comment.user?.login !== trustedAuthor) continue
     const marker = comment.body?.match(/websocket-monitor-series:v1:([a-z0-9_-]+):(\d{4}-\d{2}-\d{2})/)
