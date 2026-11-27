@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { METRICS_ISSUE_TITLE, findMetricsIssue } from './metrics.js'
+import { dispatchNotifications } from './notifications.js'
 
 const API_VERSION = '2022-11-28'
 const SERIES_MARKER = (service, date) => `<!-- websocket-monitor-series:v1:${service}:${date} -->`
@@ -40,21 +41,57 @@ function incidentBody(result, now) {
     `- **Service:** ${result.name}`,
     `- **Detected at (UTC):** ${new Date(now).toISOString()}`,
     `- **Failed attempts:** ${result.attempts ?? 'unknown'}`,
+    `- **Diagnostic:** ${result.failureCode ?? 'not classified'}`,
     '- **Check:** protocol-level health probe', '',
     'This incident is automatically closed when a subsequent scheduled check succeeds.',
     'No endpoint URL, credential, peer ID, or probe payload is included in this report.',
   ].join('\n')
 }
 
+function incidentAssignees(env, service) {
+  try {
+    const parsed = JSON.parse(env.WS_MONITOR_ASSIGNEES_JSON || '{}')
+    const values = Array.isArray(parsed[service]) ? parsed[service] : []
+    return [...new Set(values.filter((value) => typeof value === 'string' && /^[a-zA-Z0-9-]{1,39}$/.test(value)))].slice(0, 10)
+  } catch { return [] }
+}
+
+async function countConsecutiveFailures(service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository) {
+  if (!metricsIssue) return 0
+  const since = new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
+  const comments = await githubRequestAllPages(
+    \`\${repository}/issues/\${metricsIssue.number}/comments?since=\${encodeURIComponent(since)}\`,
+    token, fetchImpl, apiUrl,
+  )
+  const samples = []
+  for (const comment of comments) {
+    if (comment.user?.login !== trustedAuthor || !comment.body?.includes(\`websocket-monitor-series:v1:\${service}:\`)) continue
+    const parsed = parseSeriesComment(comment.body)
+    if (parsed?.service === service && Array.isArray(parsed.samples)) samples.push(...parsed.samples)
+  }
+  const unique = new Map(samples.filter((sample) => Array.isArray(sample) && Number.isFinite(sample[0]) && sample[0] <= now).map((sample) => [sample[0], sample]))
+  const recent = [...unique.values()].sort((a, b) => b[0] - a[0])
+  let count = 0
+  for (const sample of recent) {
+    if (sample[1] !== 0) break
+    count += 1
+  }
+  return count
+}
+
 export async function syncIncidents(results, env = process.env, options = {}) {
   const token = env.GITHUB_TOKEN
-  if (!token) return { skipped: true, reason: 'missing-token' }
+  if (!token) return { skipped: true, reason: 'missing-token', events: [] }
   const repository = repoPath(env.GITHUB_REPOSITORY)
   const fetchImpl = options.fetchImpl ?? fetch
   const apiUrl = env.GITHUB_API_URL ?? 'https://api.github.com'
   const now = options.now ?? Date.now()
-  const openIssues = await githubRequestAllPages(`${repository}/issues?state=open`, token, fetchImpl, apiUrl)
-  const issues = openIssues.filter((issue) => !issue.pull_request)
+  const allIssues = await githubRequestAllPages(\`\${repository}/issues?state=all&sort=updated&direction=desc\`, token, fetchImpl, apiUrl)
+  const issues = allIssues.filter((issue) => !issue.pull_request && issue.state === 'open')
+  const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
+  const metricsIssue = findMetricsIssue(allIssues, trustedAuthor)
+  const confirmationFailures = Math.min(10, Math.max(1, Number.parseInt(env.WS_INCIDENT_CONFIRMATION_FAILURES || '2', 10) || 2))
+  const events = []
 
   for (const result of results) {
     if (!result.service || result.status === 'disabled' || result.status === 'not_due' || result.status === 'misconfigured') continue
@@ -66,16 +103,34 @@ export async function syncIncidents(results, env = process.env, options = {}) {
     const title = incidentTitle(result)
     const active = issues.find((issue) => issue.title === title)
     if (result.ok === false && !active) {
-      await githubRequest(`${repository}/issues`, token, { method: 'POST', body: JSON.stringify({ title, body: incidentBody(result, now) }) }, fetchImpl, apiUrl)
-    } else if (result.ok === true && active) {
-      await githubRequest(`${repository}/issues/${active.number}/comments`, token, {
+      const failures = await countConsecutiveFailures(result.service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository)
+      if (failures < confirmationFailures) continue
+      const created = await githubRequest(\`\${repository}/issues\`, token, {
         method: 'POST',
-        body: JSON.stringify({ body: `## Service recovered\n\n- **Recovered at (UTC):** ${new Date(now).toISOString()}\n- **Successful check:** protocol-level health probe\n\nThe incident is being closed automatically.` }),
+        body: JSON.stringify({
+          title,
+          body: incidentBody(result, now),
+          assignees: incidentAssignees(env, result.service),
+        }),
       }, fetchImpl, apiUrl)
-      await githubRequest(`${repository}/issues/${active.number}`, token, { method: 'PATCH', body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) }, fetchImpl, apiUrl)
+      events.push({
+        type: 'incident.opened', service: result.service, serviceName: result.name,
+        timestamp: new Date(now).toISOString(), attempts: result.attempts,
+        failureCode: result.failureCode, incidentUrl: created.html_url,
+      })
+    } else if (result.ok === true && active) {
+      await githubRequest(\`\${repository}/issues/\${active.number}/comments\`, token, {
+        method: 'POST',
+        body: JSON.stringify({ body: \`## Service recovered\n\n- **Recovered at (UTC):** \${new Date(now).toISOString()}\n- **Successful check:** protocol-level health probe\n\nThe incident is being closed automatically.\` }),
+      }, fetchImpl, apiUrl)
+      await githubRequest(\`\${repository}/issues/\${active.number}\`, token, { method: 'PATCH', body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) }, fetchImpl, apiUrl)
+      events.push({
+        type: 'incident.recovered', service: result.service, serviceName: result.name,
+        timestamp: new Date(now).toISOString(), incidentUrl: active.html_url,
+      })
     }
   }
-  return { skipped: false }
+  return { skipped: false, events }
 }
 
 function parseSeriesComment(body) {
@@ -147,7 +202,7 @@ export async function recordCheckHistory(results, env = process.env, options = {
     const current = existing ? parseSeriesComment(existing.body) : null
     const samples = current?.samples ?? []
     if (!samples.some((item) => item[0] === now)) {
-      samples.push([now, result.ok ? 1 : 0, Number.isFinite(result.elapsedMs) ? Math.max(0, Math.round(result.elapsedMs)) : null, Number.isFinite(result.attempts) ? result.attempts : null])
+      samples.push([now, result.ok ? 1 : 0, Number.isFinite(result.elapsedMs) ? Math.max(0, Math.round(result.elapsedMs)) : null, Number.isFinite(result.attempts) ? result.attempts : null, result.failureCode ?? null])
     }
     samples.sort((a, b) => a[0] - b[0])
     const body = renderSeriesComment(result.service, date, samples.slice(-500))
@@ -176,12 +231,8 @@ export async function publishGitHubHistory(results, env = process.env, options =
       maintenances = JSON.parse(file).maintenances ?? []
     } catch { maintenances = [] }
   }
-  const [incidentResult, historyResult] = await Promise.allSettled([
-    syncIncidents(results, env, { ...options, maintenances }),
-    recordCheckHistory(results, env, options),
-  ])
-  if (incidentResult.status === 'rejected' || historyResult.status === 'rejected') {
-    throw new Error('GitHub incident/history synchronization was incomplete')
-  }
-  return { incidents: incidentResult.value, history: historyResult.value }
+  const historyResult = await recordCheckHistory(results, env, options)
+  const incidentResult = await syncIncidents(results, env, { ...options, maintenances })
+  const notificationResults = await Promise.all((incidentResult.events ?? []).map((event) => dispatchNotifications(event, env, options)))
+  return { incidents: incidentResult, history: historyResult, notifications: notificationResults }
 }
