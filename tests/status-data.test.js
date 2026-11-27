@@ -37,6 +37,26 @@ test('classifies a recent failed probe as down', () => {
   assert.equal(classifyService([[now - 1000, 0, 500, 8]], config, now).status, 'down')
 })
 
+
+test('waits for consecutive failed checks before publishing DOWN status', () => {
+  const confirmedConfig = { ...config, incidentConfirmationFailures: 2 }
+  const singleFailure = classifyService([[now - 1000, 0, null, 8, 'connection_timeout']], confirmedConfig, now)
+  assert.equal(singleFailure.status, 'unknown')
+  assert.equal(singleFailure.reason, 'pending-confirmation')
+
+  const confirmedFailure = classifyService([
+    [now - 2000, 0, null, 8, 'connection_timeout'],
+    [now - 1000, 0, null, 8, 'connection_timeout'],
+  ], confirmedConfig, now)
+  assert.equal(confirmedFailure.status, 'down')
+
+  const recovered = classifyService([
+    [now - 2000, 0, null, 8, 'connection_timeout'],
+    [now - 1000, 1, 150, 1, null],
+  ], confirmedConfig, now)
+  assert.equal(recovered.status, 'operational')
+})
+
 test('classifies high latency as degraded while protocol checks still succeed', () => {
   assert.equal(classifyService([[now - 1000, 1, 2500, 1]], config, now).status, 'degraded')
 })
