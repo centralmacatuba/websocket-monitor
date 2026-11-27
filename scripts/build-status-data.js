@@ -21,13 +21,12 @@ async function api(path) {
 
 async function allPages(path) {
   const items = []
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; ; page += 1) {
     const separator = path.includes('?') ? '&' : '?'
     const batch = await api(`${path}${separator}per_page=100&page=${page}`)
     items.push(...batch)
-    if (batch.length < 100) break
+    if (batch.length < 100) return items
   }
-  return items
 }
 
 const repository = config.repository
@@ -40,8 +39,11 @@ const cutoff = now - 30 * 24 * 60 * 60 * 1000
 const samplesByService = Object.fromEntries(config.services.map((service) => [service.id, []]))
 
 if (metricsIssue) {
-  const comments = await allPages(`${repoPath}/issues/${metricsIssue.number}/comments?sort=created&direction=desc`)
+  const since = new Date(cutoff).toISOString()
+  const comments = await allPages(`${repoPath}/issues/${metricsIssue.number}/comments?since=${encodeURIComponent(since)}`)
+  const trustedAuthor = process.env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
   for (const comment of comments) {
+    if (comment.user?.login !== trustedAuthor) continue
     const marker = comment.body?.match(/websocket-monitor-series:v1:([a-z0-9_-]+):(\d{4}-\d{2}-\d{2})/)
     if (!marker || !samplesByService[marker[1]]) continue
     const payload = comment.body.match(/\`\`\`json\s*([\s\S]*?)\s*\`\`\`/)
