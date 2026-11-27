@@ -48,8 +48,8 @@ export async function dispatchNotifications(event, env = process.env, options = 
   const tasks = []
 
   if (enabled(env.WS_NOTIFY_DISCORD_ENABLED, Boolean(env.WS_NOTIFY_DISCORD_WEBHOOK_URL))) {
-    if (!env.WS_NOTIFY_DISCORD_WEBHOOK_URL) tasks.push(['discord', Promise.reject(new Error('missing configuration'))])
-    else tasks.push(['discord', (async () => {
+    if (!env.WS_NOTIFY_DISCORD_WEBHOOK_URL) tasks.push(['discord', async () => { throw new Error('missing configuration') }])
+    else tasks.push(['discord', async () => {
       const response = await fetchImpl(env.WS_NOTIFY_DISCORD_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,12 +57,12 @@ export async function dispatchNotifications(event, env = process.env, options = 
         signal: AbortSignal.timeout(timeoutMs),
       })
       if (!response.ok) throw new Error('Discord notification failed')
-    })()])
+    }])
   }
 
   if (enabled(env.WS_NOTIFY_TELEGRAM_ENABLED, Boolean(env.WS_NOTIFY_TELEGRAM_BOT_TOKEN && env.WS_NOTIFY_TELEGRAM_CHAT_ID))) {
-    if (!env.WS_NOTIFY_TELEGRAM_BOT_TOKEN || !env.WS_NOTIFY_TELEGRAM_CHAT_ID) tasks.push(['telegram', Promise.reject(new Error('missing configuration'))])
-    else tasks.push(['telegram', (async () => {
+    if (!env.WS_NOTIFY_TELEGRAM_BOT_TOKEN || !env.WS_NOTIFY_TELEGRAM_CHAT_ID) tasks.push(['telegram', async () => { throw new Error('missing configuration') }])
+    else tasks.push(['telegram', async () => {
       const response = await fetchImpl(`https://api.telegram.org/bot${env.WS_NOTIFY_TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,12 +70,12 @@ export async function dispatchNotifications(event, env = process.env, options = 
         signal: AbortSignal.timeout(timeoutMs),
       })
       if (!response.ok) throw new Error('Telegram notification failed')
-    })()])
+    }])
   }
 
   if (enabled(env.WS_NOTIFY_WEBHOOK_ENABLED, Boolean(env.WS_NOTIFY_WEBHOOK_URL))) {
-    if (!env.WS_NOTIFY_WEBHOOK_URL) tasks.push(['webhook', Promise.reject(new Error('missing configuration'))])
-    else tasks.push(['webhook', (async () => {
+    if (!env.WS_NOTIFY_WEBHOOK_URL) tasks.push(['webhook', async () => { throw new Error('missing configuration') }])
+    else tasks.push(['webhook', async () => {
       const url = safeWebhookUrl(env.WS_NOTIFY_WEBHOOK_URL)
       const body = JSON.stringify(payload)
       const headers = { 'Content-Type': 'application/json', 'User-Agent': 'CentralMacatuba-WebSocket-Monitor/1.0' }
@@ -89,12 +89,12 @@ export async function dispatchNotifications(event, env = process.env, options = 
         signal: AbortSignal.timeout(timeoutMs),
       })
       if (!response.ok) throw new Error('Custom webhook notification failed')
-    })()])
+    }])
   }
 
   const settled = await Promise.all(tasks.map(async ([destination, promise]) => {
     try {
-      await promise
+      await promise()
       return { destination, ok: true }
     } catch {
       return { destination, ok: false }
