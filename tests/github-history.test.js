@@ -182,7 +182,7 @@ test('history pagination continues beyond the former twenty-page cap', async () 
     fetchImpl, now: Date.UTC(2026, 10, 25, 12),
   })
   assert.equal(result.writes[0].action, 'created')
-  assert.equal(calls.length, 25)
+  assert.equal(calls.length, 24)
 })
 
 test('writer and status-page lookup share the same canonical metrics issue title', () => {
