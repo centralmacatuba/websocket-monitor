@@ -5,6 +5,21 @@ const number = (value) => value == null ? '—' : new Intl.NumberFormat('pt-BR')
 const percent = (value) => value == null ? 'Coletando dados' : `${value.toFixed(3).replace('.', ',')}%`
 const dateTime = (value) => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value)) + ' UTC' : '—'
 
+function applyFreshness(status) {
+  const now = Date.now()
+  const services = (status.services ?? []).map((service) => {
+    const lastCheckedAt = Date.parse(service.lastCheckedAt)
+    const staleAfterMs = Number(service.staleAfterMs)
+    if (!Number.isFinite(lastCheckedAt) || !Number.isFinite(staleAfterMs) || now - lastCheckedAt > staleAfterMs) {
+      return { ...service, status: 'unknown', statusReason: 'stale-data' }
+    }
+    return service
+  })
+  const priority = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
+  const overallStatus = priority.find((candidate) => services.some((service) => service.status === candidate)) ?? 'unknown'
+  return { ...status, services, overallStatus }
+}
+
 function renderOverall(status, services) {
   const order = ['down', 'degraded', 'unknown', 'maintenance', 'operational']
   const overall = order.find((candidate) => services.some((service) => service.status === candidate)) ?? status
@@ -91,10 +106,11 @@ async function load() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.json()
     }))
-    renderOverall(status.overallStatus, status.services)
-    renderServices(status.services)
-    renderLatency(status.services, history)
-    renderUptime(status.services, history)
+    const freshStatus = applyFreshness(status)
+    renderOverall(freshStatus.overallStatus, freshStatus.services)
+    renderServices(freshStatus.services)
+    renderLatency(freshStatus.services, history)
+    renderUptime(freshStatus.services, history)
     renderMaintenances(maintenance.maintenances ?? [])
     renderIncidents(incidents.incidents ?? [])
     renderBadges(status.badges ?? [])
