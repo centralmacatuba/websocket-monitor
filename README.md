@@ -210,7 +210,7 @@ O webhook personalizado recebe um POST JSON com o schema `centralmacatuba.websoc
 
 ### Confirmação de incidentes e responsáveis
 
-Por padrão, são necessárias **duas verificações consecutivas com falha** antes de abrir um incidente e disparar notificações. Uma recuperação é registrada assim que uma verificação posterior passa. Configure `WS_INCIDENT_CONFIRMATION_FAILURES` entre 1 e 10 para alterar o limite. A confirmação consulta as amostras reais já persistidas no histórico; não inventa verificações nem adiciona atrasos artificiais.
+Por padrão, são necessárias **duas verificações consecutivas com falha** antes de abrir um incidente e disparar notificações. Uma recuperação é registrada assim que uma verificação posterior passa. Configure `WS_INCIDENT_CONFIRMATION_FAILURES` entre 1 e 10 para alterar o limite. A confirmação consulta as amostras reais já persistidas no histórico; não inventa verificações nem adiciona atrasos artificiais. A Status Page aplica o mesmo limite ao estado atual: uma falha isolada aparece como “Falha pendente de confirmação”; somente o número configurado de falhas consecutivas publica “Indisponível”. Cada falha real continua entrando nas métricas de uptime observadas.
 
 Os responsáveis podem ser definidos por serviço com a variável `WS_MONITOR_ASSIGNEES_JSON`, cujo valor é um objeto JSON com IDs de serviço e arrays de logins GitHub. Exemplo:
 
