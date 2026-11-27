@@ -1,0 +1,64 @@
+name: WebSocket Relay Monitor
+
+on:
+  # GitHub Actions supports scheduled runs at a minimum five-minute cadence.
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: websocket-relay-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Check enabled relay protocols
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 12.12.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check configured protocols
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          WS_MONITOR_ENABLED: ${{ vars.WS_MONITOR_ENABLED }}
+          WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
+          MCRAFT_P2P_MONITOR_ENABLED: ${{ vars.MCRAFT_P2P_MONITOR_ENABLED }}
+          MCRAFT_P2P_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_MONITOR_INTERVAL_MINUTES }}
+          MCRAFT_P2P_WS_URL: ${{ secrets.MCRAFT_P2P_WS_URL }}
+          EAGLERCRAFT_RELAY_MONITOR_ENABLED: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_ENABLED }}
+          EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES }}
+          EAGLERCRAFT_RELAY_WS_URL: ${{ secrets.EAGLERCRAFT_RELAY_WS_URL }}
+          MCRAFT_P2P_PEERJS_MONITOR_ENABLED: ${{ vars.MCRAFT_P2P_PEERJS_MONITOR_ENABLED }}
+          MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES }}
+          MCRAFT_P2P_PEERJS_WS_URL: ${{ secrets.MCRAFT_P2P_PEERJS_WS_URL }}
+          EAGLERCRAFT_WISP_MONITOR_ENABLED: ${{ vars.EAGLERCRAFT_WISP_MONITOR_ENABLED }}
+          EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES }}
+          EAGLERCRAFT_WISP_WS_URL: ${{ secrets.EAGLERCRAFT_WISP_WS_URL }}
+          WS_CONNECT_TIMEOUT_MS: "15000"
+          WS_MAX_ATTEMPTS: "8"
+          WS_RETRY_DELAY_MS: "10000"
+        run: pnpm monitor
