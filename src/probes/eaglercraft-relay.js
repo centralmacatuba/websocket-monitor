@@ -7,26 +7,28 @@ const PACKET_PONG = 0x69
 const CONNECTION_TYPE_PING = 0x03
 
 export function createEaglerPingPacket() {
-  return Buffer.from([PACKET_HANDSHAKE, CONNECTION_TYPE_PING, PROTOCOL_VERSION])
+  // RelayPacket00Handshake.write() always serializes connectionCode with writeASCII8;
+  // null is encoded as a one-byte zero length, even for a ping request.
+  return Buffer.from([PACKET_HANDSHAKE, CONNECTION_TYPE_PING, PROTOCOL_VERSION, 0x00])
 }
 
-function readJavaUtf(buffer, offset) {
-  if (offset + 2 > buffer.length) throw new Error('Truncated EaglerSPRelay pong')
-  const length = buffer.readUInt16BE(offset)
-  const start = offset + 2
+function readAscii8(buffer, offset) {
+  if (offset >= buffer.length) throw new Error('Truncated EaglerSPRelay pong')
+  const length = buffer[offset]
+  const start = offset + 1
   const end = start + length
   if (end > buffer.length) throw new Error('Truncated EaglerSPRelay pong string')
-  return { value: buffer.toString('utf8', start, end), offset: end }
+  return { value: buffer.toString('latin1', start, end), offset: end }
 }
 
-/** Parse the EaglerSPRelay PKT 0x69 pong: packet id, protocol version, comment and brand. */
+/** Parse the EaglerSPRelay PKT 0x69 pong: packet id, protocol version, and two ASCII8 strings. */
 export function parseEaglerPong(input) {
   const packet = Buffer.from(input)
   if (packet.length < 2 || packet[0] !== PACKET_PONG) throw new Error('Unexpected EaglerSPRelay response packet')
   const version = packet[1]
   if (version !== PROTOCOL_VERSION) throw new Error('Unsupported EaglerSPRelay protocol version')
-  const comment = readJavaUtf(packet, 2)
-  const brand = readJavaUtf(packet, comment.offset)
+  const comment = readAscii8(packet, 2)
+  const brand = readAscii8(packet, comment.offset)
   if (brand.offset !== packet.length) throw new Error('Unexpected trailing EaglerSPRelay pong data')
   return { protocolVersion: version, comment: comment.value, brand: brand.value }
 }
