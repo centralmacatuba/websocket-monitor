@@ -51,6 +51,7 @@ async function checkTrysteroInProcess(url, { timeoutMs = 15_000, joinRoomImpl = 
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
   })
   let room
+  let childReadyTimer
 
   try {
     let rejectChildReady
@@ -62,7 +63,7 @@ async function checkTrysteroInProcess(url, { timeoutMs = 15_000, joinRoomImpl = 
     })
     // Attach a rejection observer immediately because room creation can fail before startup is awaited.
     childReady.catch(() => {})
-    const childReadyTimer = setTimeout(() => rejectChildReady(new Error('Trystero peer startup timed out')), timeoutMs)
+    childReadyTimer = setTimeout(() => rejectChildReady(new Error('Trystero peer startup timed out')), timeoutMs)
 
     room = joinRoomImpl({
       appId: APP_ID,
