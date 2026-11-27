@@ -32,20 +32,19 @@ async function main() {
     relayConfig: { urls: [url], warnOnRelayFailure: false },
   }, roomId)
   const action = room.makeAction('cm-monitor-health')
-  action.onMessage(async (message) => {
+  action.onMessage = async (message) => {
     if (message?.kind !== 'probe' || typeof message.nonce !== 'string') return
     await action.send({ kind: 'ack', nonce: message.nonce })
     await cleanup()
     if (process.connected) process.send({ type: 'done' })
     process.exit(0)
-  })
+  }
   process.on('message', async (message) => {
     if (message?.type === 'stop') {
       await cleanup()
       process.exit(0)
     }
   })
-  await room.getSelf()
   if (process.connected) process.send({ type: 'ready' })
 }
 
