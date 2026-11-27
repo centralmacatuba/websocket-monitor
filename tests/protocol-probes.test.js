@@ -9,19 +9,18 @@ import { checkWisp } from '../src/probes/wisp.js'
 import { checkPeerJs } from '../src/probes/peerjs.js'
 import { checkTrystero } from '../src/probes/trystero.js'
 
-function javaUtf(value) {
-  const bytes = Buffer.from(value, 'utf8')
-  const length = Buffer.alloc(2)
-  length.writeUInt16BE(bytes.length)
-  return Buffer.concat([length, bytes])
+function ascii8(value) {
+  const bytes = Buffer.from(value, 'latin1')
+  assert.ok(bytes.length <= 255)
+  return Buffer.concat([Buffer.from([bytes.length]), bytes])
 }
 
 test('builds the EaglerSPRelay v1 ping handshake packet', () => {
-  assert.deepEqual(createEaglerPingPacket(), Buffer.from([0x00, 0x03, 0x01]))
+  assert.deepEqual(createEaglerPingPacket(), Buffer.from([0x00, 0x03, 0x01, 0x00]))
 })
 
 test('parses the EaglerSPRelay pong packet and metadata', () => {
-  const packet = Buffer.concat([Buffer.from([0x69, 0x01]), javaUtf('status'), javaUtf('relay-brand')])
+  const packet = Buffer.concat([Buffer.from([0x69, 0x01]), ascii8('status'), ascii8('relay-brand')])
   assert.deepEqual(parseEaglerPong(packet), {
     protocolVersion: 1,
     comment: 'status',
@@ -143,8 +142,8 @@ test('completes an EaglerSPRelay v1 ping round-trip against a local WebSocket se
   websocketServer.on('connection', (socket) => {
     socket.on('message', (packet) => {
       assert.deepEqual(Buffer.from(packet), Buffer.from([0x00, 0x03, 0x01]))
-      const comment = javaUtf('local test relay')
-      const brand = javaUtf('EaglerSPRelay')
+      const comment = ascii8('local test relay')
+      const brand = ascii8('EaglerSPRelay')
       socket.send(Buffer.concat([Buffer.from([0x69, 0x01]), comment, brand]))
     })
   })
