@@ -111,7 +111,7 @@ async function load() {
     renderBadges(status.badges ?? [])
     $('#updated-at').textContent = dateTime(status.generatedAt)
   } catch {
-    $('#overall').innerHTML = '<span class="status-dot down"></span><div><strong>Não foi possível carregar o status</strong><p>Tente atualizar a página em instantes.</p></div>'
+    $('#overall').innerHTML = '<span class="status-dot unknown"></span><div><strong>Status não verificado</strong><p>Não foi possível obter dados atuais. Verifique sua conexão e tente novamente.</p></div>'
   } finally {
     $('#refresh').disabled = false
   }
