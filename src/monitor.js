@@ -40,7 +40,9 @@ export function classifyProbeError(error) {
   const code = String(error?.code ?? '').toLowerCase()
   const message = String(error?.message ?? '').toLowerCase()
   if (code.includes('timeout') || /negotiation timed out|protocol timed out/.test(message)) return 'negotiation_timeout'
-  if (/timed out|timeout|etimedout|econnrefused|enotfound|ehostunreach/.test(`${code} ${message}`)) return 'connection_timeout'
+  if (/econnrefused|connection refused/.test(`${code} ${message}`)) return 'connection_refused'
+  if (/enotfound|eai_again|dns|name resolution/.test(`${code} ${message}`)) return 'dns_resolution_failed'
+  if (/timed out|timeout|etimedout|ehostunreach/.test(`${code} ${message}`)) return 'connection_timeout'
   if (/version 2|protocol version|downgrade/.test(message)) return 'protocol_version_mismatch'
   if (/malformed|truncated|parse|invalid frame|payload mismatch/.test(message)) return 'message_parse_error'
   if (/closed before|connection closed|socket closed/.test(message)) return 'connection_closed'
