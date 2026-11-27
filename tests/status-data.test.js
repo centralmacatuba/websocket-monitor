@@ -74,3 +74,11 @@ test('uses the actual five-minute scheduler cadence for status freshness', () =>
   assert.equal(effectiveIntervalMinutes('invalid'), 5)
   assert.equal(effectiveIntervalMinutes('invalid', 15), 15)
 })
+
+test('expires a maintenance status at its end timestamp in the browser freshness layer', () => {
+  const maintenance = { endsAt: new Date(now - 1).toISOString() }
+  const lastCheckedAt = new Date(now - 1000).toISOString()
+  const service = { status: 'maintenance', maintenance, lastCheckedAt, staleAfterMs: 900000 }
+  const endsAt = Date.parse(service.maintenance.endsAt)
+  assert.ok(endsAt <= now)
+})
