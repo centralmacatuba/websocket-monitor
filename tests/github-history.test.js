@@ -20,7 +20,7 @@ function mockFetch(routes) {
   return { fetchImpl, calls }
 }
 
-const env = { GITHUB_TOKEN: 'test-token', GITHUB_REPOSITORY: 'owner/repo' }
+const env = { GITHUB_TOKEN: 'test-token', GITHUB_REPOSITORY: 'owner/repo', WS_INCIDENT_CONFIRMATION_FAILURES: '1' }
 
 test('opens one incident issue on DOWN and avoids duplicate notifications', async () => {
   const { fetchImpl, calls } = mockFetch([
@@ -57,7 +57,7 @@ test('records first real protocol check in a new daily service series', async ()
   assert.equal(calls.length, 4)
   assert.equal(JSON.parse(calls[1].options.body).title, METRICS_ISSUE_TITLE)
   assert.match(calls[3].options.body, /websocket-monitor-series:v1:eaglercraft-wisp:2026-11-25/)
-  assert.match(calls[3].options.body, /\[1795608000000,1,18,1\]/)
+  assert.match(calls[3].options.body, /\[1795608000000,1,18,1,null\]/)
 })
 
 test('appends a check to an existing series comment without duplicating timestamps', async () => {
@@ -73,7 +73,7 @@ test('appends a check to an existing series comment without duplicating timestam
   })
   assert.equal(result.writes[0].action, 'updated')
   assert.equal(calls.length, 3)
-  assert.match(calls[2].options.body, /\[1795608300000,0,500,8\]/)
+  assert.match(calls[2].options.body, /\[1795608300000,0,500,8,null\]/)
 })
 
 test('does not create a history record for disabled, not-due, or unconfigured services', async () => {
