@@ -7,7 +7,7 @@ const PACKET_PONG = 0x69
 const CONNECTION_TYPE_PING = 0x03
 
 export function createEaglerPingPacket() {
-  return Buffer.from([PACKET_HANDSHAKE, PROTOCOL_VERSION, CONNECTION_TYPE_PING])
+  return Buffer.from([PACKET_HANDSHAKE, CONNECTION_TYPE_PING, PROTOCOL_VERSION])
 }
 
 function readJavaUtf(buffer, offset) {
