@@ -138,6 +138,7 @@ const incidents = issues
       closedAt,
       duration,
       url: issue.html_url,
+      failureCode: issue.body?.match(/- \\*\\*Diagnostic:\\*\\* ([a-z_]+)/)?.[1] ?? null,
     }
   })
   .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
