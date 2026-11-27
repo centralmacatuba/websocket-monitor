@@ -172,12 +172,16 @@ test('history pagination continues beyond the former twenty-page cap', async () 
     status: 200,
     body: index < 20 ? Array.from({ length: 100 }, (_, item) => ({ number: index * 100 + item + 1, title: `unrelated ${index}-${item}` })) : [],
   }))
+  pages.push(
+    { match: (url) => url.includes('/issues/2001/comments?'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues/2001/comments') && options.method === 'POST', status: 201, body: { id: 9999 } },
+  )
   const { fetchImpl, calls } = mockFetch(pages)
   const result = await recordCheckHistory([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: true, elapsedMs: 18, attempts: 1 }], env, {
     fetchImpl, now: Date.UTC(2026, 10, 25, 12),
   })
   assert.equal(result.writes[0].action, 'created')
-  assert.equal(calls.length, 23)
+  assert.equal(calls.length, 24)
 })
 
 test('writer and status-page lookup share the same canonical metrics issue title', () => {
