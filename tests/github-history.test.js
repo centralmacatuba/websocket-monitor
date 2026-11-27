@@ -32,6 +32,44 @@ test('opens one incident issue on DOWN and avoids duplicate notifications', asyn
   assert.match(calls[1].options.body, /\[WebSocket Monitor\]\[DOWN\]\[eaglercraft-wisp\]/)
 })
 
+test('requires two consecutive failed samples before opening an incident by default', async () => {
+  const now = Date.UTC(2026, 10, 27, 12)
+  const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-27 -->'
+  const body = [marker, '', '```json', JSON.stringify({
+    version: 1, service: 'eaglercraft-wisp', date: '2026-11-27',
+    samples: [[now - 300000, 0, null, 8, 'connection_timeout'], [now, 0, null, 8, 'connection_timeout']],
+  }), '```'].join('\n')
+  const metricsIssue = { number: 15, title: METRICS_ISSUE_TITLE, state: 'open', user: { login: 'github-actions[bot]' } }
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [metricsIssue] },
+    { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 101, body }] },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST', status: 201, body: { number: 99, html_url: 'https://github.com/owner/repo/issues/99' } },
+  ])
+  const result = await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8, failureCode: 'connection_timeout' }], env, { fetchImpl, now })
+  assert.equal(result.events.length, 1)
+  assert.equal(result.events[0].type, 'incident.opened')
+  assert.equal(calls.length, 4)
+})
+
+test('does not open an incident for only one failed sample by default', async () => {
+  const now = Date.UTC(2026, 10, 27, 12)
+  const marker = '<!-- websocket-monitor-series:v1:eaglercraft-wisp:2026-11-27 -->'
+  const body = [marker, '', '```json', JSON.stringify({
+    version: 1, service: 'eaglercraft-wisp', date: '2026-11-27',
+    samples: [[now, 0, null, 8, 'connection_timeout']],
+  }), '```'].join('\n')
+  const metricsIssue = { number: 15, title: METRICS_ISSUE_TITLE, state: 'open', user: { login: 'github-actions[bot]' } }
+  const { fetchImpl, calls } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url) => url.includes('/issues?state=all&sort=updated&direction=desc'), status: 200, body: [metricsIssue] },
+    { match: (url) => url.includes('/issues/15/comments?'), status: 200, body: [{ id: 101, body }] },
+  ])
+  const result = await syncIncidents([{ service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 }], { GITHUB_TOKEN: env.GITHUB_TOKEN, GITHUB_REPOSITORY: env.GITHUB_REPOSITORY }, { fetchImpl, now })
+  assert.deepEqual(result.events, [])
+  assert.equal(calls.length, 3)
+})
+
 test('closes an active incident after recovery', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 9, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp' }] },
