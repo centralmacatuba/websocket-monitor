@@ -110,8 +110,9 @@ export async function recordCheckHistory(results, env = process.env, options = {
   const included = results.filter((result) => result.service && typeof result.ok === 'boolean' && !['disabled', 'not_due', 'misconfigured'].includes(result.status))
   if (included.length === 0) return { skipped: true, reason: 'no-checks' }
 
+  const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
   const issues = await githubRequestAllPages(`${repository}/issues?state=all&sort=updated&direction=desc`, token, fetchImpl, apiUrl)
-  let metricsIssue = findMetricsIssue(issues)
+  let metricsIssue = findMetricsIssue(issues, trustedAuthor)
   if (!metricsIssue) {
     metricsIssue = await githubRequest(`${repository}/issues`, token, {
       method: 'POST',
@@ -138,7 +139,6 @@ export async function recordCheckHistory(results, env = process.env, options = {
     `${repository}/issues/${metricsIssue.number}/comments?since=${encodeURIComponent(dayStart)}`,
     token, fetchImpl, apiUrl,
   )
-  const trustedAuthor = env.WS_MONITOR_HISTORY_AUTHOR || 'github-actions[bot]'
   const trustedComments = comments.filter((comment) => comment.user?.login === trustedAuthor)
   const writes = []
   for (const result of included) {
