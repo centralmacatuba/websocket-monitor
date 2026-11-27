@@ -73,6 +73,38 @@ test('negotiates Wisp v2 with the official client API', async () => {
   assert.equal(result.motdReceived, true)
 })
 
+test('preserves Wisp query parameters while normalizing the endpoint pathname', async () => {
+  class QueryClientConnection {
+    constructor(url, options) {
+      assert.equal(String(url), 'wss://wisp.example.test/wisp/?token=private-test')
+      assert.equal(url.endsWith('/'), true)
+      assert.deepEqual(options, { wisp_version: 2 })
+      this.wisp_version = 2
+      queueMicrotask(() => this.onopen?.())
+    }
+    close() {}
+  }
+  await checkWisp('wss://wisp.example.test/wisp?token=private-test', { ClientConnection: QueryClientConnection })
+})
+
+test('does not let the Wisp client silently reconnect using v1 after a v2 error', async () => {
+  let fallbackAttempts = 0
+  class FallbackConnection {
+    constructor() {
+      this.wisp_version = 2
+      this.ws = {}
+      queueMicrotask(() => this.ws.onerror?.())
+    }
+    cleanup() {}
+    close() {}
+  }
+  await assert.rejects(
+    checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: FallbackConnection }),
+    /Wisp WebSocket or protocol error/,
+  )
+  assert.equal(fallbackAttempts, 0)
+})
+
 test('rejects Wisp downgrade and negotiation timeout', async () => {
   class DowngradeConnection {
     constructor() {
