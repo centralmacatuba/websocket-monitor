@@ -152,7 +152,7 @@ function renderSeriesComment(service, date, samples) {
   return [
     SERIES_MARKER(service, date),
     `## ${service} · ${date} (UTC)`, '',
-    'Cada item representa uma verificação de protocolo realmente executada: [timestamp_ms, sucesso(1/0), latência_ms, tentativas].', '',
+    'Cada item representa uma verificação de protocolo realmente executada: [timestamp_ms, sucesso(1/0), latência_ms, tentativas, failure_code|null].', '',
     '```json',
     JSON.stringify({ version: 1, service, date, samples }),
     '```',
