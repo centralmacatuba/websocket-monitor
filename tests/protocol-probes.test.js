@@ -17,7 +17,7 @@ function javaUtf(value) {
 }
 
 test('builds the EaglerSPRelay v1 ping handshake packet', () => {
-  assert.deepEqual(createEaglerPingPacket(), Buffer.from([0x00, 0x01, 0x03]))
+  assert.deepEqual(createEaglerPingPacket(), Buffer.from([0x00, 0x03, 0x01]))
 })
 
 test('parses the EaglerSPRelay pong packet and metadata', () => {
@@ -110,7 +110,7 @@ test('completes an EaglerSPRelay v1 ping round-trip against a local WebSocket se
   const websocketServer = new WebSocketServer({ server })
   websocketServer.on('connection', (socket) => {
     socket.on('message', (packet) => {
-      assert.deepEqual(Buffer.from(packet), Buffer.from([0x00, 0x01, 0x03]))
+      assert.deepEqual(Buffer.from(packet), Buffer.from([0x00, 0x03, 0x01]))
       const comment = javaUtf('local test relay')
       const brand = javaUtf('EaglerSPRelay')
       socket.send(Buffer.concat([Buffer.from([0x69, 0x01]), comment, brand]))
