@@ -57,7 +57,7 @@ Não inclua credenciais ou tokens nas URLs. Os logs não imprimem endpoints, pay
 
 O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou serviço pago adicional:
 
-- Quando um probe falha após todas as tentativas, abre uma issue `[WebSocket Monitor][DOWN]` para aquele serviço. A issue funciona como alerta e registro do início do incidente.
+- Quando um probe falha após todas as tentativas, o monitor registra a amostra. Por padrão, exige duas verificações consecutivas com falha antes de abrir uma issue `[WebSocket Monitor][DOWN]` e disparar notificações; o limite é configurável. A issue funciona como alerta e registro do início do incidente.
 - Enquanto o serviço continuar indisponível, a mesma issue permanece aberta; verificações subsequentes não criam alertas duplicados.
 - Quando o probe volta a funcionar, o monitor comenta a recuperação e fecha a issue. O histórico de issues preserva início, recuperação e duração do incidente.
 - Cada verificação de protocolo efetivamente executada é registrada como uma amostra compacta em um comentário diário por serviço na issue de métricas. Cada amostra contém timestamp, resultado, duração total do probe e número de tentativas.
