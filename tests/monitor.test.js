@@ -146,10 +146,12 @@ test('publishes incident history after protocol checks when GitHub credentials a
     probes: { 'eaglercraft-wisp': async () => ({ elapsedMs: 23 }) },
     publishHistory: async (results, env, options) => {
       published = { results, env, options }
+      return { notifications: [] }
     },
   })
   assert.equal(code, 0)
   assert.equal(published.results.filter((result) => result.ok).length, 1)
+  assert.equal(log.entries.error.some((message) => message.includes('Não foi possível atualizar o histórico')), false)
   assert.equal(published.results.find((result) => result.service === 'eaglercraft-wisp').elapsedMs, 23)
   assert.equal(published.env.GITHUB_REPOSITORY, 'owner/repo')
 })
