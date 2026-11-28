@@ -153,8 +153,10 @@ export async function checkTrystero(url, options = {}) {
   })
 
   try {
-    await Promise.all(children.map((child) => waitFor(child, 'ready', 'Trystero peer startup timed out')))
-    const result = await waitFor(children[1], 'done', 'Trystero peer exchange timed out')
+    const donePromise = waitFor(children[1], 'done', 'Trystero peer exchange timed out')
+    donePromise.catch(() => {})
+    const readyPromise = Promise.all(children.map((child) => waitFor(child, 'ready', 'Trystero peer startup timed out')))
+    const [, result] = await Promise.all([readyPromise, donePromise])
     return { transport: true, protocol: true, peerExchange: true, elapsedMs: result.elapsedMs }
   } finally {
     await Promise.all(children.map((child) => stopChild(child)))
