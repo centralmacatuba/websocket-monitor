@@ -39,7 +39,7 @@ export function isIntervalDue(intervalMinutes, now = Date.now()) {
 export function classifyProbeError(error) {
   const code = String(error?.code ?? '').toLowerCase()
   const message = String(error?.message ?? '').toLowerCase()
-  if (code.includes('timeout') || /negotiation timed out|protocol timed out/.test(message)) return 'negotiation_timeout'
+  if (code.includes('timeout') || /negotiation timed out|protocol timed out|protocol timeout/.test(message)) return 'negotiation_timeout'
   if (/econnrefused|connection refused/.test(`${code} ${message}`)) return 'connection_refused'
   if (/enotfound|eai_again|dns|name resolution/.test(`${code} ${message}`)) return 'dns_resolution_failed'
   if (/timed out|timeout|etimedout|ehostunreach/.test(`${code} ${message}`)) return 'connection_timeout'
