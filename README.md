@@ -66,7 +66,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 - As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura.
 - Janelas de manutenção suprimem a abertura de novos incidentes para os serviços abrangidos. Incidentes já abertos continuam sendo atualizados e fechados normalmente quando houver recuperação.
 
-O monitor precisa da permissão GitHub Actions **Issues: Read and write** para abrir/atualizar incidentes e registrar amostras. O workflow declara somente `contents: read` e `issues: write`; o token é fornecido automaticamente por `GITHUB_TOKEN` e não precisa ser cadastrado como secret. Nenhuma URL de relay ou credencial é incluída nas issues.
+O monitor usa a secret `CM_GITHUB_TOKEN` para operações da API do GitHub. Configure um fine-grained PAT limitado somente a este repositório, com `Issues: Read and write` e `Contents: Read and write` (necessário apenas para a sincronização manual do lockfile). Defina também a Actions Variable `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub da conta proprietária do PAT; essa identidade precisa corresponder ao autor das issues e comentários de métricas/incidentes. Sem essa variável, o filtro usa `github-actions[bot]`, o que não corresponde a um PAT pessoal. Nenhuma URL de relay ou credencial é incluída nas issues.
 
 ## Status Page pública
 
@@ -76,7 +76,7 @@ A página estática fica em `status-page/` e é publicada pelo workflow `.github
 
 O arquivo `status-page/CNAME` já declara `websocket.centralmacatuba.qzz.io`. Depois da integração, configure no DNS o CNAME `websocket` apontando para `centralmacatuba.github.io` e confirme o domínio em **Settings → Pages**; habilite **Enforce HTTPS** quando o certificado estiver disponível.
 
-A publicação é acionada quando o workflow de monitoramento termina (inclusive quando o resultado de um probe faz o workflow terminar com falha), quando os arquivos da página mudam na branch `principal`, ou manualmente. O builder lê as issues/comentários públicos do próprio repositório, gera JSON estático e badges SVG e publica tudo pelo fluxo oficial de artefatos do GitHub Pages.
+A publicação é acionada por um workflow reutilizável chamado ao final do monitoramento, inclusive quando uma probe falha, quando os arquivos da página mudam na branch `principal`, ou manualmente. O workflow reutilizável consulta o código confiável da branch `principal` e não consome artefatos produzidos por execuções de pull requests. O builder lê as issues/comentários públicos do próprio repositório, gera JSON estático e badges SVG e publica tudo pelo fluxo oficial de artefatos do GitHub Pages.
 
 ### Métricas de uptime e latência
 
@@ -163,7 +163,7 @@ pnpm test
 node --env-file=.env src/monitor.js
 ```
 
-O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Nos workflows, `GITHUB_TOKEN` recebe o valor de `secrets.CM_GITHUB_TOKEN`. Ao usar um token pessoal localmente, defina também `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub que assina os comentários; em Actions, o padrão confiável é `github-actions[bot]`.
+O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Nos workflows, `GITHUB_TOKEN` recebe o valor de `secrets.CM_GITHUB_TOKEN`. Ao usar um token pessoal localmente ou no GitHub Actions, defina `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub proprietário do token.
 
 ## Segurança
 
