@@ -24,7 +24,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
   // Never serve cached status, uptime, incident or maintenance data as current.
-  if (url.pathname.includes('/data/') || url.pathname.endsWith('/maintenance.json')) {
+  if (url.pathname.includes('/data/') || url.pathname.includes('/badges/') || url.pathname.endsWith('/maintenance.json')) {
     event.respondWith(fetch(request, { cache: 'no-store' }))
     return
   }
@@ -34,11 +34,12 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+  // Revalidate static assets on every visit; fall back to the previous shell only offline.
+  event.respondWith(fetch(request, { cache: 'no-store' }).then((response) => {
     if (response.ok && response.type === 'basic') {
       const copy = response.clone()
       caches.open(CACHE).then((cache) => cache.put(request, copy))
     }
     return response
-  })))
+  }).catch(async () => (await caches.match(request)) || Response.error()))
 })
