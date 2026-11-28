@@ -45,7 +45,7 @@ export function checkEaglerRelay(url, { timeoutMs = 15_000, WebSocketClass = Web
       handshakeTimeout: timeoutMs,
     })
     let settled = false
-    const timer = setTimeout(() => fail(new Error('EaglerSPRelay protocol timeout')), timeoutMs)
+    const timer = setTimeout(() => fail(new Error('EaglerSPRelay protocol timed out')), timeoutMs)
     const finish = (error, value) => {
       if (settled) return
       settled = true
