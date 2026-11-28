@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <meta name="description" content="Status operacional e histórico de disponibilidade dos serviços WebSocket da Central Macatuba.">
+  <title>Status dos serviços · WebSocket Monitor</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/css/styles.css">
+  <script type="module" src="./assets/js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="WebSocket Monitor — início"><span class="brand-mark">CM</span><span>WEBSOCKET <b>MONITOR</b></span></a>
+    <div class="topbar-actions"><button id="install-app" class="text-button" type="button" hidden>Instalar aplicativo</button><span class="live-indicator"><i></i> STATUS PÚBLICO</span></div>
+  </header>
+  <main class="container">
+    <section class="hero">
+      <p class="eyebrow">CENTRAL MACATUBA · INFRAESTRUTURA</p>
+      <h1>Status dos serviços</h1>
+      <p class="subtitle">Disponibilidade, desempenho e histórico dos relays monitorados por verificações reais de protocolo.</p>
+      <div id="overall" class="overall-card" aria-live="polite">
+        <span class="status-dot unknown"></span><div><strong>Carregando status…</strong><p>Buscando a última verificação registrada.</p></div>
+      </div>
+      <div class="updated">Última atualização: <time id="updated-at">—</time><button id="refresh" class="text-button" type="button">Atualizar</button></div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading"><div><p class="eyebrow">VISÃO GERAL</p><h2>Serviços monitorados</h2></div><span id="service-count" class="muted"></span></div>
+      <div id="services" class="service-grid"><div class="skeleton"></div><div class="skeleton"></div></div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading"><div><p class="eyebrow">DESEMPENHO</p><h2>Latência histórica</h2></div><span class="muted">Últimas 24 horas · ms</span></div>
+      <div id="latency-charts" class="chart-grid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading"><div><p class="eyebrow">DISPONIBILIDADE</p><h2>Histórico de uptime</h2></div><span class="muted">Amostras observadas · últimos 30 dias</span></div>
+      <div id="uptime-history" class="history-list"></div>
+      <p class="footnote">O percentual é calculado sobre as verificações efetivamente executadas. Ausência de amostras não é contabilizada como disponibilidade nem como indisponibilidade. Períodos de manutenção marcados para exclusão são desconsiderados.</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading"><div><p class="eyebrow">PLANEJAMENTO</p><h2>Manutenções programadas</h2></div></div>
+      <div id="maintenances" class="notice-list"><p class="empty">Nenhuma manutenção programada publicada.</p></div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading"><div><p class="eyebrow">OCORRÊNCIAS</p><h2>Histórico de incidentes</h2></div><span id="incident-count" class="muted"></span></div>
+      <div id="incidents" class="incident-list"><p class="empty">Carregando incidentes…</p></div>
+    </section>
+
+    <section class="section badges-section">
+      <div class="section-heading"><div><p class="eyebrow">INTEGRAÇÃO</p><h2>Badges de status</h2></div></div>
+      <p class="muted">Use os badges abaixo em READMEs, documentações e outros projetos.</p>
+      <div id="badges" class="badges"></div>
+    </section>
+
+    <footer><span>WebSocket Monitor · Central Macatuba</span><span>Dados públicos de monitoramento · GitHub Actions + GitHub Pages</span></footer>
+  </main>
+</body>
+</html>

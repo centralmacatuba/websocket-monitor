@@ -72,6 +72,26 @@ test('negotiates Wisp v2 with the official client API', async () => {
   assert.equal(result.motdReceived, true)
 })
 
+test('rejects a Wisp INFO packet that advertises a protocol version other than v2', async () => {
+  class IncompatibleInfoConnection {
+    constructor() {
+      this.wisp_version = 2
+      this.ws = {
+        onmessage: (event) => {
+          const bytes = new Uint8Array(event.data)
+          if (bytes[0] === 0x05) this.onopen?.()
+        },
+      }
+      queueMicrotask(() => this.ws.onmessage({ data: new Uint8Array([0x05, 0, 0, 0, 0, 3, 0]).buffer }))
+    }
+    close() {}
+  }
+  await assert.rejects(
+    checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: IncompatibleInfoConnection }),
+    /incompatible protocol version/,
+  )
+})
+
 test('preserves Wisp query parameters while normalizing the endpoint pathname', async () => {
   class QueryClientConnection {
     constructor(url, options) {
@@ -339,7 +359,7 @@ test('EaglerSPRelay times out when the server never answers the protocol ping', 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const address = server.address()
   try {
-    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 20 }), /protocol timeout/)
+    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 20 }), /protocol timed out/)
   } finally {
     await new Promise((resolve) => websocketServer.close(resolve))
     await new Promise((resolve) => server.close(resolve))
@@ -406,7 +426,7 @@ test('Trystero production wrapper isolates both relay participants in child proc
     children.push({ child, role: options.env.CM_TRYSTERO_ROLE })
     queueMicrotask(() => child.emit('message', { type: 'ready' }))
     if (options.env.CM_TRYSTERO_ROLE === 'initiator') {
-      queueMicrotask(() => child.emit('message', { type: 'done', elapsedMs: 12 }))
+      setTimeout(() => child.emit('message', { type: 'done', elapsedMs: 12 }), 0)
     }
     return child
   }

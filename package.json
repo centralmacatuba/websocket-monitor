@@ -1,0 +1,25 @@
+{
+  "name": "@centralmacatuba/websocket-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Protocol-level availability monitor for Central Macatuba relays",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "monitor": "node src/monitor.js",
+    "check": "node --check src/check-websocket.js && node --check src/monitor.js && node --check src/github-history.js && node --check src/metrics.js && node --check src/notifications.js && node --check src/status-data.js && node --check scripts/build-status-data.js && node --check src/probes/eaglercraft-relay.js && node --check src/probes/trystero.js && node --check src/probes/trystero-worker.js && node --check src/probes/peerjs.js && node --check src/probes/peerjs-worker.js && node --check src/probes/wisp.js && node --check tests/check-websocket.test.js && node --check tests/check-websocket-unit.test.js && node --check tests/monitor.test.js && node --check tests/protocol-probes.test.js && node --check tests/github-history.test.js && node --check tests/status-data.test.js && node --check status-page/assets/js/app.js && node --check status-page/assets/js/freshness.js && node --check status-page/sw.js && node --check tests/peerjs-integration.test.js && node --check tests/notifications.test.js",
+    "test": "node --test",
+    "test:protocol": "node --test tests/protocol-probes.test.js",
+    "test:peerjs-integration": "node --test tests/peerjs-integration.test.js"
+  },
+  "dependencies": {
+    "@mercuryworkshop/wisp-js": "0.5.3",
+    "@trystero-p2p/ws-relay": "0.26.0",
+    "peerjs": "1.5.4",
+    "werift": "0.28.0",
+    "ws": "8.22.0"
+  },
+  "license": "MIT"
+}

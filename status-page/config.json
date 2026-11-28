@@ -1,0 +1,34 @@
+{
+  "repository": "centralmacatuba/websocket-monitor",
+  "expectedIntervalMinutes": 5,
+  "services": [
+    {
+      "id": "mcraft-p2p",
+      "name": "Mcraft P2P (Trystero)",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 3000,
+      "intervalVariable": "MCRAFT_P2P_MONITOR_INTERVAL_MINUTES"
+    },
+    {
+      "id": "eaglercraft-relay",
+      "name": "EaglerCraft Relay",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 2000,
+      "intervalVariable": "EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES"
+    },
+    {
+      "id": "mcraft-p2p-peerjs",
+      "name": "Mcraft P2P (PeerJS legado)",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 3000,
+      "intervalVariable": "MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES"
+    },
+    {
+      "id": "eaglercraft-wisp",
+      "name": "EaglerCraft Wisp",
+      "expectedIntervalMinutes": 5,
+      "degradedLatencyMs": 2000,
+      "intervalVariable": "EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES"
+    }
+  ]
+}

@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   issues: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: websocket-relay-monitor
@@ -17,6 +19,9 @@ concurrency:
 jobs:
   monitor:
     name: Check enabled relay protocols
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 8
 
@@ -42,7 +47,8 @@ jobs:
 
       - name: Check configured protocols
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CM_GITHUB_TOKEN }}
+          WS_MONITOR_HISTORY_AUTHOR: ${{ vars.WS_MONITOR_HISTORY_AUTHOR }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           WS_MONITOR_ENABLED: ${{ vars.WS_MONITOR_ENABLED }}
           WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
@@ -61,4 +67,30 @@ jobs:
           WS_CONNECT_TIMEOUT_MS: "15000"
           WS_MAX_ATTEMPTS: "8"
           WS_RETRY_DELAY_MS: "10000"
-        run: pnpm monitor
+          WS_INCIDENT_CONFIRMATION_FAILURES: ${{ vars.WS_INCIDENT_CONFIRMATION_FAILURES }}
+          WS_MONITOR_ASSIGNEES_JSON: ${{ vars.WS_MONITOR_ASSIGNEES_JSON }}
+          WS_NOTIFY_DISCORD_ENABLED: ${{ vars.WS_NOTIFY_DISCORD_ENABLED }}
+          WS_NOTIFY_DISCORD_WEBHOOK_URL: ${{ secrets.WS_NOTIFY_DISCORD_WEBHOOK_URL }}
+          WS_NOTIFY_TELEGRAM_ENABLED: ${{ vars.WS_NOTIFY_TELEGRAM_ENABLED }}
+          WS_NOTIFY_TELEGRAM_BOT_TOKEN: ${{ secrets.WS_NOTIFY_TELEGRAM_BOT_TOKEN }}
+          WS_NOTIFY_TELEGRAM_CHAT_ID: ${{ vars.WS_NOTIFY_TELEGRAM_CHAT_ID }}
+          WS_NOTIFY_WEBHOOK_ENABLED: ${{ vars.WS_NOTIFY_WEBHOOK_ENABLED }}
+          WS_NOTIFY_WEBHOOK_URL: ${{ secrets.WS_NOTIFY_WEBHOOK_URL }}
+          WS_NOTIFY_WEBHOOK_SECRET: ${{ secrets.WS_NOTIFY_WEBHOOK_SECRET }}
+          WS_NOTIFY_TIMEOUT_MS: ${{ vars.WS_NOTIFY_TIMEOUT_MS }}
+        run: |
+          test -n "$WS_MONITOR_HISTORY_AUTHOR" || { echo "::error::Set the WS_MONITOR_HISTORY_AUTHOR Actions variable to the CM_GITHUB_TOKEN owner's GitHub login."; exit 1; }
+          pnpm monitor
+
+  publish-status:
+    name: Publish status page after monitoring
+    needs: monitor
+    if: always() && !cancelled()
+    permissions:
+      contents: read
+      issues: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/status-page.yml
+    secrets:
+      CM_GITHUB_TOKEN: ${{ secrets.CM_GITHUB_TOKEN }}
