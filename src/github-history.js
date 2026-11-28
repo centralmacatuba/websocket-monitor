@@ -99,15 +99,17 @@ export async function syncIncidents(results, env = process.env, options = {}) {
   const metricsIssue = findMetricsIssue(allIssues, trustedAuthor)
   const events = []
 
+  const errors = []
   for (const result of results) {
     if (!result.service || result.status === 'disabled' || result.status === 'not_due' || result.status === 'misconfigured') continue
+    try {
     const plannedMaintenance = (options.maintenances ?? []).some((item) =>
       (item.service === result.service || item.service === 'all') && item.status !== 'completed' &&
       Date.parse(item.startsAt) <= now && Date.parse(item.endsAt) >= now,
     )
     if (plannedMaintenance && result.ok === false) continue
     const title = incidentTitle(result)
-    const active = issues.find((issue) => issue.title === title)
+    const active = issues.find((issue) => issue.title === title && issue.user?.login === trustedAuthor)
     if (result.ok === false && !active) {
       const failures = confirmationFailures === 1 ? 1 : await countConsecutiveFailures(result.service, metricsIssue, trustedAuthor, token, fetchImpl, apiUrl, now, repository)
       if (failures < confirmationFailures) continue
@@ -135,8 +137,11 @@ export async function syncIncidents(results, env = process.env, options = {}) {
         timestamp: new Date(now).toISOString(), incidentUrl: active.html_url,
       })
     }
+    } catch {
+      errors.push({ service: result.service, reason: 'github-api-failure' })
+    }
   }
-  return { skipped: false, events }
+  return { skipped: false, events, errors }
 }
 
 function parseSeriesComment(body) {
@@ -237,12 +242,14 @@ export async function publishGitHubHistory(results, env = process.env, options =
       maintenances = JSON.parse(file).maintenances ?? []
     } catch { maintenances = [] }
   }
+  const outcomes = { incidents: null, history: null, notifications: [], errors: [] }
+  try { outcomes.history = await recordCheckHistory(results, env, options) }
+  catch { outcomes.errors.push('history-write-failed') }
   try {
-    const historyResult = await recordCheckHistory(results, env, options)
-    const incidentResult = await syncIncidents(results, env, { ...options, maintenances })
-    const notificationResults = await Promise.all((incidentResult.events ?? []).map((event) => dispatchNotifications(event, env, options)))
-    return { incidents: incidentResult, history: historyResult, notifications: notificationResults }
-  } catch {
-    throw new Error('GitHub incident/history synchronization was incomplete')
-  }
+    outcomes.incidents = await syncIncidents(results, env, { ...options, maintenances })
+    outcomes.errors.push(...(outcomes.incidents.errors ?? []).map((item) => `incident-sync-failed:${item.service}`))
+    outcomes.notifications = await Promise.all((outcomes.incidents.events ?? []).map((event) => dispatchNotifications(event, env, options)))
+  } catch { outcomes.errors.push('incident-sync-failed') }
+  if (outcomes.errors.length) throw new Error('GitHub synchronization incomplete')
+  return outcomes
 }
