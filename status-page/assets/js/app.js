@@ -95,7 +95,23 @@ function renderBadges(badges) {
   }).join('')
 }
 
+let lastSnapshot = null
+let latestRequestId = 0
+
+function renderSnapshot(snapshot) {
+  const freshStatus = applyFreshness(snapshot.status)
+  renderOverall(freshStatus.overallStatus, freshStatus.services)
+  renderServices(freshStatus.services)
+  renderLatency(freshStatus.services, snapshot.history)
+  renderUptime(freshStatus.services, snapshot.history)
+  renderMaintenances(snapshot.maintenance.maintenances ?? [])
+  renderIncidents(snapshot.incidents.incidents ?? [])
+  renderBadges(snapshot.status.badges ?? [])
+  $('#updated-at').textContent = dateTime(snapshot.status.generatedAt)
+}
+
 async function load() {
+  const requestId = ++latestRequestId
   $('#refresh').disabled = true
   try {
     const [status, history, incidents, maintenance] = await Promise.all(['status.json','history.json','incidents.json','../maintenance.json'].map(async (file) => {
@@ -104,19 +120,20 @@ async function load() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.json()
     }))
-    const freshStatus = applyFreshness(status)
-    renderOverall(freshStatus.overallStatus, freshStatus.services)
-    renderServices(freshStatus.services)
-    renderLatency(freshStatus.services, history)
-    renderUptime(freshStatus.services, history)
-    renderMaintenances(maintenance.maintenances ?? [])
-    renderIncidents(incidents.incidents ?? [])
-    renderBadges(status.badges ?? [])
-    $('#updated-at').textContent = dateTime(status.generatedAt)
+    if (requestId !== latestRequestId) return
+    lastSnapshot = { status, history, incidents, maintenance }
+    renderSnapshot(lastSnapshot)
   } catch {
-    $('#overall').innerHTML = '<span class="status-dot unknown"></span><div><strong>Status não verificado</strong><p>Não foi possível obter dados atuais. Verifique sua conexão e tente novamente.</p></div>'
+    if (requestId !== latestRequestId) return
+    if (lastSnapshot) {
+      // Re-evaluate sample age even when the latest network refresh fails.
+      renderSnapshot(lastSnapshot)
+      $('#overall').insertAdjacentHTML('beforeend', '<span class="muted"> · Falha ao atualizar</span>')
+    } else {
+      $('#overall').innerHTML = '<span class="status-dot unknown"></span><div><strong>Status não verificado</strong><p>Não foi possível obter dados atuais. Verifique sua conexão e tente novamente.</p></div>'
+    }
   } finally {
-    $('#refresh').disabled = false
+    if (requestId === latestRequestId) $('#refresh').disabled = false
   }
 }
 
