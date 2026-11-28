@@ -339,7 +339,7 @@ test('EaglerSPRelay times out when the server never answers the protocol ping', 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const address = server.address()
   try {
-    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 20 }), /protocol timeout/)
+    await assert.rejects(checkEaglerRelay(`ws://127.0.0.1:${address.port}/`, { timeoutMs: 20 }), /protocol timed out/)
   } finally {
     await new Promise((resolve) => websocketServer.close(resolve))
     await new Promise((resolve) => server.close(resolve))
