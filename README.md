@@ -66,7 +66,7 @@ O workflow usa o próprio GitHub como backend, sem servidor, banco de dados ou s
 - As amostras são atualizadas por comentário, sem criar um commit a cada cinco minutos. O monitor mantém uma série por serviço/dia, evita timestamps duplicados em reruns e limita o tamanho de cada comentário. O título da issue de métricas é compartilhado pelo gravador e pelo builder da Status Page para impedir divergência entre escrita e leitura.
 - Janelas de manutenção suprimem a abertura de novos incidentes para os serviços abrangidos. Incidentes já abertos continuam sendo atualizados e fechados normalmente quando houver recuperação.
 
-O monitor usa a secret `CM_GITHUB_TOKEN` para operações da API do GitHub. Configure um fine-grained PAT limitado somente a este repositório, com `Issues: Read and write` e `Contents: Read and write` (necessário apenas para a sincronização manual do lockfile). Defina também a Actions Variable `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub da conta proprietária do PAT; essa identidade precisa corresponder ao autor das issues e comentários de métricas/incidentes. Sem essa variável, o filtro usa `github-actions[bot]`, o que não corresponde a um PAT pessoal. Nenhuma URL de relay ou credencial é incluída nas issues.
+O monitor usa a secret `CM_GITHUB_TOKEN` para operações da API do GitHub. Configure um fine-grained PAT limitado somente a este repositório, com `Issues: Read and write` e `Contents: Read and write` (necessário apenas para a sincronização manual do lockfile). Defina obrigatoriamente a Actions Variable `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub da conta proprietária do PAT; essa identidade precisa corresponder ao autor das issues e comentários de métricas/incidentes. Sem essa variável, o filtro usa `github-actions[bot]`, o que não corresponde a um PAT pessoal. Nenhuma URL de relay ou credencial é incluída nas issues.
 
 ## Status Page pública
 
@@ -163,7 +163,7 @@ pnpm test
 node --env-file=.env src/monitor.js
 ```
 
-O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Nos workflows, `GITHUB_TOKEN` recebe o valor de `secrets.CM_GITHUB_TOKEN`. Ao usar um token pessoal localmente ou no GitHub Actions, defina `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub proprietário do token.
+O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em uma execução local, todos os serviços habilitados são executados imediatamente. O histórico no GitHub só é sincronizado quando `GITHUB_TOKEN` e `GITHUB_REPOSITORY` estão definidos. Nos workflows, `GITHUB_TOKEN` recebe o valor de `secrets.CM_GITHUB_TOKEN`. Ao usar um token pessoal localmente ou no GitHub Actions, defina `WS_MONITOR_HISTORY_AUTHOR` com o login GitHub proprietário do token. Nos workflows, essa variável é obrigatória e a execução falha com mensagem explícita se estiver ausente.
 
 ## Segurança
 
@@ -172,7 +172,7 @@ O Node.js 22 carrega as variáveis do `.env` pelo parâmetro `--env-file`. Em um
 - As salas e peers Trystero/PeerJS são encerrados após o teste. O appId do Trystero é exclusivo do monitor para impedir que o teste encontre salas reais.
 - EaglerSPRelay recebe somente um pacote ping oficial e não cria mundos.
 - Wisp negocia versão sem abrir streams para destinos externos.
-- O workflow de monitoramento e a geração da Status Page usam a secret `CM_GITHUB_TOKEN` para chamadas à API; as permissões declaradas no workflow continuam limitadas ao necessário. O checkout desses workflows usa `persist-credentials: false`. A sincronização manual do lockfile usa o mesmo token no checkout para autenticar o `git push`.
+- O workflow de monitoramento e a geração da Status Page usam a secret `CM_GITHUB_TOKEN` para chamadas à API; as permissões declaradas no workflow continuam limitadas ao necessário. O checkout desses workflows usa `persist-credentials: false`. A sincronização manual do lockfile usa `gh auth setup-git` com o mesmo token, sem persistir credenciais no checkout.
 - O teste de transporte WebSocket genérico continua disponível em `src/check-websocket.js`, mas os quatro probes usam clientes ou mensagens de protocolo próprios.
 
 ## Licença
