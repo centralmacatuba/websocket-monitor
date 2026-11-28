@@ -73,7 +73,7 @@ test('does not open an incident for only one failed sample by default', async ()
 
 test('closes an active incident after recovery', async () => {
   const { fetchImpl, calls } = mockFetch([
-    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 9, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp' }] },
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [{ number: 9, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp', user: { login: 'github-actions[bot]' } }] },
     { match: (url) => url.endsWith('/issues/9/comments'), status: 201, body: {} },
     { match: (url) => url.endsWith('/issues/9'), status: 200, body: {} },
   ])
@@ -156,7 +156,7 @@ test('persists check samples even when incident notification creation fails', as
       fetchImpl,
       now: Date.UTC(2026, 10, 25, 12),
     }),
-    /synchronization was incomplete/,
+    /synchronization incomplete/,
   )
   assert.ok(calls.some((call) => call.url.endsWith('/issues/18/comments')))
 })
@@ -234,7 +234,7 @@ test('writer and status-page lookup share the same canonical metrics issue title
 
 test('incident synchronization paginates before deciding an issue is absent', async () => {
   const firstPage = Array.from({ length: 100 }, (_, index) => ({ number: index + 1, title: `unrelated ${index}` }))
-  const active = { number: 501, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp' }
+  const active = { number: 501, title: '[WebSocket Monitor][DOWN][eaglercraft-wisp] Wisp', user: { login: 'github-actions[bot]' } }
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open') && /[?&]page=1$/.test(url), status: 200, body: firstPage },
     { match: (url) => url.includes('/issues?state=open') && /[?&]page=2$/.test(url), status: 200, body: [active] },
