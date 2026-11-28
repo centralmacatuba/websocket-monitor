@@ -53,7 +53,9 @@ jobs:
           EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_RELAY_MONITOR_INTERVAL_MINUTES }}
           MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_PEERJS_MONITOR_INTERVAL_MINUTES }}
           EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES: ${{ vars.EAGLERCRAFT_WISP_MONITOR_INTERVAL_MINUTES }}
-        run: node scripts/build-status-data.js
+        run: |
+          test -n "$WS_MONITOR_HISTORY_AUTHOR" || { echo "::error::Set the WS_MONITOR_HISTORY_AUTHOR Actions variable to the CM_GITHUB_TOKEN owner's GitHub login."; exit 1; }
+          node scripts/build-status-data.js
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
