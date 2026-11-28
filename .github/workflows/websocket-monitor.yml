@@ -78,7 +78,9 @@ jobs:
           WS_NOTIFY_WEBHOOK_URL: ${{ secrets.WS_NOTIFY_WEBHOOK_URL }}
           WS_NOTIFY_WEBHOOK_SECRET: ${{ secrets.WS_NOTIFY_WEBHOOK_SECRET }}
           WS_NOTIFY_TIMEOUT_MS: ${{ vars.WS_NOTIFY_TIMEOUT_MS }}
-        run: pnpm monitor
+        run: |
+          test -n "$WS_MONITOR_HISTORY_AUTHOR" || { echo "::error::Set the WS_MONITOR_HISTORY_AUTHOR Actions variable to the CM_GITHUB_TOKEN owner's GitHub login."; exit 1; }
+          pnpm monitor
 
   publish-status:
     name: Publish status page after monitoring
