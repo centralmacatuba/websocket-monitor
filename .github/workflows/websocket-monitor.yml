@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   issues: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: websocket-relay-monitor
@@ -17,6 +19,9 @@ concurrency:
 jobs:
   monitor:
     name: Check enabled relay protocols
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 8
 
