@@ -1,13 +1,10 @@
 name: Publish Status Page
 
 on:
-  workflow_run:
-    workflows:
-      - WebSocket Relay Monitor
-    types:
-      - completed
-    branches:
-      - principal
+  workflow_call:
+    secrets:
+      CM_GITHUB_TOKEN:
+        required: true
   workflow_dispatch:
   push:
     branches:
@@ -28,11 +25,6 @@ concurrency:
 jobs:
   build:
     name: Build public status data
-    if: >-
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.head_repository.full_name == github.repository &&
-       github.event.workflow_run.head_branch == 'principal' &&
-       (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -54,6 +46,7 @@ jobs:
       - name: Generate status metrics and badges
         env:
           GITHUB_TOKEN: ${{ secrets.CM_GITHUB_TOKEN }}
+          WS_MONITOR_HISTORY_AUTHOR: ${{ vars.WS_MONITOR_HISTORY_AUTHOR }}
           WS_MONITOR_INTERVAL_MINUTES: ${{ vars.WS_MONITOR_INTERVAL_MINUTES }}
           WS_INCIDENT_CONFIRMATION_FAILURES: ${{ vars.WS_INCIDENT_CONFIRMATION_FAILURES }}
           MCRAFT_P2P_MONITOR_INTERVAL_MINUTES: ${{ vars.MCRAFT_P2P_MONITOR_INTERVAL_MINUTES }}
