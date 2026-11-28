@@ -250,6 +250,6 @@ export async function publishGitHubHistory(results, env = process.env, options =
     outcomes.errors.push(...(outcomes.incidents.errors ?? []).map((item) => `incident-sync-failed:${item.service}`))
     outcomes.notifications = await Promise.all((outcomes.incidents.events ?? []).map((event) => dispatchNotifications(event, env, options)))
   } catch { outcomes.errors.push('incident-sync-failed') }
-  if (outcomes.errors.length) throw new Error('GitHub synchronization incomplete')
+  if (outcomes.errors.length) throw new Error('GitHub incident/history synchronization was incomplete')
   return outcomes
 }
