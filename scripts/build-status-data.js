@@ -128,7 +128,7 @@ const history = {
   maintenances,
 }
 const incidents = issues
-  .filter((issue) => !issue.pull_request && issue.title?.startsWith('[WebSocket Monitor][DOWN]'))
+  .filter((issue) => !issue.pull_request && issue.user?.login === trustedAuthor && issue.title?.startsWith('[WebSocket Monitor][DOWN]'))
   .map((issue) => {
     const serviceId = issue.title.match(/\[DOWN\]\[([^\]]+)\]/)?.[1] ?? null
     const startedAt = issue.created_at
