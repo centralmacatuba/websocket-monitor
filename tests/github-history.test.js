@@ -130,6 +130,21 @@ test('history publishing is skipped safely without a token or repository', async
   assert.deepEqual(await publishGitHubHistory([], {}), { skipped: true })
 })
 
+test('keeps completed incident events when a later service API call fails', async () => {
+  const { fetchImpl } = mockFetch([
+    { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('eaglercraft-wisp'), status: 201, body: { number: 77, html_url: 'https://github.com/owner/repo/issues/77' } },
+    { match: (url, options) => url.endsWith('/issues') && options.method === 'POST' && options.body.includes('eaglercraft-relay'), status: 500, body: {} },
+  ])
+  const result = await syncIncidents([
+    { service: 'eaglercraft-wisp', name: 'Wisp', ok: false, attempts: 8 },
+    { service: 'eaglercraft-relay', name: 'Relay', ok: false, attempts: 3 },
+  ], env, { fetchImpl })
+  assert.equal(result.events.length, 1)
+  assert.equal(result.events[0].service, 'eaglercraft-wisp')
+  assert.deepEqual(result.errors, [{ service: 'eaglercraft-relay', reason: 'github-api-failure' }])
+})
+
 test('does not open a false incident during a scheduled maintenance window', async () => {
   const { fetchImpl, calls } = mockFetch([
     { match: (url) => url.includes('/issues?state=open'), status: 200, body: [] },
