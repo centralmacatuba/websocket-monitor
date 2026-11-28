@@ -72,6 +72,26 @@ test('negotiates Wisp v2 with the official client API', async () => {
   assert.equal(result.motdReceived, true)
 })
 
+test('rejects a Wisp INFO packet that advertises a protocol version other than v2', async () => {
+  class IncompatibleInfoConnection {
+    constructor() {
+      this.wisp_version = 2
+      this.ws = {
+        onmessage: (event) => {
+          const bytes = new Uint8Array(event.data)
+          if (bytes[0] === 0x05) this.onopen?.()
+        },
+      }
+      queueMicrotask(() => this.ws.onmessage({ data: new Uint8Array([0x05, 0, 0, 0, 0, 3, 0]).buffer }))
+    }
+    close() {}
+  }
+  await assert.rejects(
+    checkWisp('wss://wisp.example.test/wisp/', { ClientConnection: IncompatibleInfoConnection }),
+    /incompatible protocol version/,
+  )
+})
+
 test('preserves Wisp query parameters while normalizing the endpoint pathname', async () => {
   class QueryClientConnection {
     constructor(url, options) {
