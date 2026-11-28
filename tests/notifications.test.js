@@ -75,12 +75,14 @@ test('does not send notifications when all destinations are disabled', async () 
   assert.equal(calls, 0)
 })
 
-test('rejects insecure custom webhook URLs without exposing credentials', async () => {
+test('rejects insecure custom webhook URLs without making a network request', async () => {
+  let calls = 0
   const result = await dispatchNotifications(event, {
     WS_NOTIFY_WEBHOOK_ENABLED: 'true',
     WS_NOTIFY_WEBHOOK_URL: 'http://hooks.example.test/monitor',
-  }, { fetchImpl: async () => { throw new Error('must not be called') } })
+  }, { fetchImpl: async () => { calls += 1; return { ok: true, status: 200 } } })
   assert.deepEqual(result.results, [{ destination: 'webhook', ok: false }])
+  assert.equal(calls, 0)
 })
 
 
