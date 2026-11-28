@@ -184,7 +184,7 @@ test('persists a stable failure category for a failed protocol probe', async () 
     probes: {
       'eaglercraft-wisp': async () => { throw new Error('Wisp v2 negotiation timed out') },
     },
-    publishHistory: async (results) => { published = results },
+    publishHistory: async (results) => { published = results; return { notifications: [] } },
   })
   assert.equal(code, 1)
   assert.equal(published.find((item) => item.service === 'eaglercraft-wisp').failureCode, 'negotiation_timeout')
