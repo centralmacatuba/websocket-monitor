@@ -156,7 +156,7 @@ test('persists check samples even when incident notification creation fails', as
       fetchImpl,
       now: Date.UTC(2026, 10, 25, 12),
     }),
-    /synchronization incomplete/,
+    /synchronization was incomplete/,
   )
   assert.ok(calls.some((call) => call.url.endsWith('/issues/18/comments')))
 })
