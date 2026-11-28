@@ -56,8 +56,21 @@ export function checkWisp(url, { timeoutMs = 15_000, ClientConnection = wisp.Cli
       const originalOnMessage = connection.ws.onmessage
       if (typeof originalOnMessage === 'function') {
         connection.ws.onmessage = function (event) {
-          try { return originalOnMessage.call(this, event) }
-          catch (error) { finish(error) }
+          try {
+            const bytes = event.data instanceof ArrayBuffer
+              ? new Uint8Array(event.data)
+              : ArrayBuffer.isView(event.data)
+                ? new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength)
+                : null
+            if (bytes && bytes.length >= 7 && bytes[0] === 0x05) {
+              const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+              if (view.getUint32(1, true) === 0 && bytes[5] !== 2) {
+                finish(new Error('Wisp server announced an incompatible protocol version'))
+                return
+              }
+            }
+            return originalOnMessage.call(this, event)
+          } catch (error) { finish(error) }
         }
       }
     }
